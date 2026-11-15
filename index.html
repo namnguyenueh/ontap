@@ -587,7 +587,7 @@ function check(raw,code){
   var codes=raw.codes||{},user={code:'',name:''};
   if(NEED){
     if(!code)throw 'nocode';
-    if(!Object.prototype.hasOwnProperty.call(codes,code))throw 'badcode';
+    if(Object.keys(codes).length&&!Object.prototype.hasOwnProperty.call(codes,code))throw 'badcode'; // danh sách trống = mã nào cũng vào được
     user.code=code;user.name=codes[code]||'';
   }
   return user;
