@@ -13,6 +13,7 @@
 <link rel="icon" href="icon.png">
 <title>Ôn tập Quy hoạch</title>
 <script src="config.js"></script>
+<script src="online.js"></script>
 <script>var NAM=(window.NAM_ON_TAP||2026),TEN=(window.TEN_APP||"Ôn tập Quy hoạch");document.title=TEN+" "+NAM;</script>
 <style>
 :root{
@@ -173,6 +174,8 @@ input[type=search],input[type=number],input[type=password],input[type=text],sele
 .sndbtn{font-size:18px}
 .expl{margin-top:10px;padding:12px;border-radius:12px;background:var(--pri2);font-size:15px}
 .res-item .l.ex{color:var(--mute);font-size:13.5px}
+.online{color:var(--ok);font-weight:600;font-size:12.5px}
+.online:empty{display:none}
 .wm{position:fixed;inset:0;pointer-events:none;z-index:35;background-repeat:repeat}
 </style>
 </head>
@@ -225,11 +228,12 @@ var order=TOPICS.map(function(_,i){return i;});
 var filter='';
 function topicStat(ti){var ids=byTopic[ti],ok=0,no=0;ids.forEach(function(i){var v=store.st[i];if(v===1)ok++;else if(v===2)no++;});return {n:ids.length,ok:ok,no:no};}
 function home(){
+  if(window.ONLINE)ONLINE.topic('');
   stopTimer();if(typeof stopG==='function')stopG();
   var ok=0,no=0;for(var k in store.st){if(store.st[k]===1)ok++;else if(store.st[k]===2)no++;}
   var selSet={};store.sel.forEach(function(i){selSet[i]=1;});
   var poolN=pool().length;
-  var h='<header class="top"><h1>'+esc(TEN+' '+NAM)+'<small>'+fmt(Q.length)+' câu hỏi · '+TOPICS.length+' chủ đề'+(USER&&USER.code?'<br>👤 '+esc(USER.name?USER.name+' ('+USER.code+')':USER.code):'')+'</small></h1><button class="icon sndbtn" id="snd" aria-label="Âm thanh">'+(store.snd?'🔊':'🔇')+'</button></header>';
+  var h='<header class="top"><h1>'+esc(TEN+' '+NAM)+'<small>'+fmt(Q.length)+' câu hỏi · '+TOPICS.length+' chủ đề'+(USER&&USER.code?'<br>👤 '+esc(USER.name?USER.name+' ('+USER.code+')':USER.code):'')+'<br><span class="online"></span></small></h1><button class="icon sndbtn" id="snd" aria-label="Âm thanh">'+(store.snd?'🔊':'🔇')+'</button></header>';
   h+=gameHome();
   h+='<div class="stats"><div class="stat"><b>'+fmt(ok+no)+'</b><span>Đã làm</span></div><div class="stat"><b style="color:var(--ok)">'+fmt(ok)+'</b><span>Đúng</span></div><div class="stat"><b style="color:var(--bad)">'+fmt(no)+'</b><span>Đang sai</span></div></div>';
   h+='<div class="lbl">Cách ôn</div><div class="modes">';
@@ -316,10 +320,10 @@ function begin(ids,mode,min,title){
 }
 function exam(){return S.mode==='exam'&&!S.submitted;}
 function quiz(){
-  var id=S.ids[S.i],q=Q[id],ans=q[3],multi=ans.length>1,pk=S.pick[S.i]||[],chk=S.checked[S.i]||(S.submitted);
+  var id=S.ids[S.i],q=Q[id];if(window.ONLINE)ONLINE.topic(TOPICS[q[0]]);var _x=q,ans=q[3],multi=ans.length>1,pk=S.pick[S.i]||[],chk=S.checked[S.i]||(S.submitted);
   var answered=Object.keys(S.mode==='exam'?S.pick:S.checked).length;
   var title=S.title||({seq:'Ôn lần lượt',rnd:'Ôn ngẫu nhiên',exam:S.submitted?'Xem lại bài thi':'Thi thử',wrong:'Làm lại câu sai'})[S.mode];
-  var h='<div class="qhead"><button class="icon" id="back" aria-label="Về trang chính">‹</button><div class="t"><b>'+title+'</b><span>Câu '+fmt(S.i+1)+'/'+fmt(S.ids.length)+' · đã làm '+answered+'</span></div>'+(S.end&&!S.submitted?'<span class="timer" id="tm"></span>':'')+'<button class="icon" id="gridBtn" aria-label="Danh sách câu">▦</button></div>';
+  var h='<div class="qhead"><button class="icon" id="back" aria-label="Về trang chính">‹</button><div class="t"><b>'+title+'</b><span>Câu '+fmt(S.i+1)+'/'+fmt(S.ids.length)+' · đã làm '+answered+'<br><span class="online" data-topic="1"></span></span></div>'+(S.end&&!S.submitted?'<span class="timer" id="tm"></span>':'')+'<button class="icon" id="gridBtn" aria-label="Danh sách câu">▦</button></div>';
   h+='<div class="prog"><i style="width:'+((S.i+1)/S.ids.length*100)+'%"></i></div>';
   h+='<div class="card"><p class="qtext">'+esc(q[1])+'</p><div class="qmeta">'+esc(TOPICS[q[0]])+(multi?'<span class="multi">· Chọn '+ans.length+' đáp án</span>':'')+'</div><div class="ans">';
   q[2].forEach(function(o,j){
@@ -473,7 +477,7 @@ function bindGameHome(){
 }
 function journey(){
   stopG();
-  var h='<div class="qhead"><button class="icon" id="back">‹</button><div class="t"><b>Hành trình</b><span>Mỗi màn 10 câu · đúng 6 câu 1⭐, 8 câu 2⭐, 10 câu 3⭐</span></div></div><div class="path">';
+  var h='<div class="qhead"><button class="icon" id="back">‹</button><div class="t"><b>Hành trình</b><span>Mỗi màn 10 câu · đúng 6 câu 1⭐, 8 câu 2⭐, 10 câu 3⭐<br><span class="online"></span></span></div></div><div class="path">';
   var rec=-1;
   order.forEach(function(ti,k){var s=store.stars[ti]||0;if(rec<0&&s<3)rec=ti;
     var cls='node'+(s===3?' full':s?' part':'')+(ti===rec?' rec':'');
@@ -499,12 +503,12 @@ function gTick(){if(!G||G.type!=='race')return;var left=Math.max(0,G.end-Date.no
   if(left<=0)gOver();}
 function gQ(){
   if(G.i>=G.ids.length){if(G.type==='journey')return gOver();G.ids=G.ids.concat(shuffle(G.ids.slice()));}
-  var id=G.ids[G.i],q=Q[id],multi=q[3].length>1;G.pick=[];G.lock=false;
+  var id=G.ids[G.i],q=Q[id],multi=q[3].length>1;G.pick=[];G.lock=false;if(window.ONLINE)ONLINE.topic(G.type==='journey'?TOPICS[q[0]]:'');
   var top='';
   if(G.type==='surv')top='<span class="hearts" id="hearts">'+'❤️'.repeat(G.lives)+'<span style="opacity:.25">'+'❤️'.repeat(3-G.lives)+'</span></span>';
   else if(G.type==='race')top='<span class="gtime" id="gt">60s</span>';
   else top='<span class="gcount">'+(G.i+1)+'/10</span>';
-  var h='<div class="qhead"><button class="icon" id="back">‹</button><div class="t"><b>'+(G.type==='journey'?esc(TOPICS[G.ti]):G.type==='surv'?'Sinh tồn':'Đua 60 giây')+'</b><span>'+top+'</span></div><div class="gscore"><b id="gs">'+fmt(G.score)+'</b><span>điểm</span></div></div>';
+  var h='<div class="qhead"><button class="icon" id="back">‹</button><div class="t"><b>'+(G.type==='journey'?esc(TOPICS[G.ti]):G.type==='surv'?'Sinh tồn':'Đua 60 giây')+'</b><span>'+top+'<br><span class="online" data-topic="1"></span></span></div><div class="gscore"><b id="gs">'+fmt(G.score)+'</b><span>điểm</span></div></div>';
   h+='<div class="prog"><i id="gtb" style="width:'+(G.type==='journey'?(G.i/10*100):G.type==='race'?100:0)+'%"></i></div>';
   h+='<div class="combo'+(G.combo>=2?' on':'')+'">🔥 Chuỗi đúng x'+G.combo+'</div>';
   h+='<div class="card gcard"><p class="qtext">'+esc(q[1])+'</p>'+(multi?'<div class="qmeta"><span class="multi">Chọn '+q[3].length+' đáp án</span></div>':'<div style="height:8px"></div>')+'<div class="ans">';
@@ -601,6 +605,7 @@ function watermark(text){
 }
 function start(raw,user){
   runApp(raw,user);
+  if(window.ONLINE)ONLINE.start();
   watermark(user.code||'TÀI LIỆU NỘI BỘ');
 }
 var MSG={pw:'Sai mật khẩu, vui lòng thử lại.',nocode:'Vui lòng nhập mã cán bộ.',badcode:'Mã cán bộ không có trong danh sách được phép sử dụng.',nocrypto:'Trình duyệt này không hỗ trợ. Hãy mở bằng Safari hoặc Chrome qua đường link https.'};
