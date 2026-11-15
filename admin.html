@@ -70,7 +70,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div class="wrap">
   <h1>Quản trị app ôn tập</h1>
-  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 3.3 · 15/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
+  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.0 · 15/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
     <h2><span class="n">1</span>Kết nối GitHub</h2>
@@ -105,7 +105,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
 
     <div class="pane on" id="pQ">
-      <p class="hint">Chọn file Excel (.xlsx hoặc .xlsm) theo đúng mẫu: sheet <b>Data</b> (hoặc sheet đầu tiên), dòng 1 là tiêu đề; cột B câu hỏi, cột C→I phương án A→G, cột J đáp án (nhiều đáp án ghi <code>A;B</code>), cột K chủ đề, cột L giải thích, cột M điểm dễ nhầm, cột N mẹo nhớ (3 cột này không bắt buộc – file cũ không có cột M, N vẫn dùng được). Cách dễ nhất: bấm <b>Tải bộ câu hỏi hiện tại</b>, sửa trong Excel rồi chọn lại file đó.</p>
+      <p class="hint">Chọn file Excel (.xlsx hoặc .xlsm) theo đúng mẫu: sheet <b>Data</b> (hoặc sheet đầu tiên), dòng 1 là tiêu đề; cột B câu hỏi, cột C→I phương án A→G, cột J đáp án (nhiều đáp án ghi <code>A;B</code>), cột K chủ đề, cột L giải thích, cột M điểm dễ nhầm, cột N mẹo nhớ (3 cột này không bắt buộc). Cách dễ nhất: bấm <b>Tải bộ câu hỏi hiện tại</b>, sửa trong Excel rồi chọn lại file đó.</p>
       <div class="row"><input type="file" id="fx" accept=".xlsx,.xlsm" style="flex:1"><button class="btn" id="bExport" style="flex:none">⬇ Tải bộ câu hỏi hiện tại (Excel)</button></div>
       <div id="sQ"></div>
       <div id="repQ"></div>
@@ -347,17 +347,17 @@ function parseQuestions(rows){
     if(!bad&&keep.length<2){errs.push('Dòng '+R+': cần ít nhất 2 phương án.');bad=true;}
     if(bad)continue;
     if(gap){warns.push('Dòng '+R+': có phương án trống ở giữa – đã dồn các phương án sau lên (đáp án được chỉnh theo).');opts=keep.map(function(k){return opts[k];});}
-    q=splitItems(q);var ex=clean1(row[11]),nh=clean1(row[12]),meo=clean1(row[13]);
+    q=splitItems(q);var ex=clean1(row[11]),trap=clean1(row[12]),tip=clean1(row[13]);
     var key=q+'|'+opts.join('|');
     if(seen[key])dups.push('Dòng '+R+': trùng câu hỏi ở dòng '+seen[key]+'.');else seen[key]=R;
-    items.push({t:topic,q:q,o:opts,a:ans.sort(function(a,b){return a-b;}),e:ex,n:nh,m:meo});
+    items.push({t:topic,q:q,o:opts,a:ans.sort(function(a,b){return a-b;}),e:ex,m:trap,k:tip});
   }
   var low={};items.forEach(function(x){var k=x.t.toLowerCase();low[k]=low[k]||{};low[k][x.t]=1;});
   Object.keys(low).forEach(function(k){var v=Object.keys(low[k]);if(v.length>1)warns.push('Các chủ đề chỉ khác nhau chữ hoa/thường: '+v.map(function(x){return '"'+x+'"';}).join(', ')+' – sẽ thành các chủ đề riêng.');});
   if(dups.length){warns.push('Có '+fmt(dups.length)+' câu trùng hệt câu khác (cùng câu hỏi và phương án) – vẫn giữ nguyên. Chi tiết bên dưới:');warns=warns.concat(dups);}
   return {items:items,errs:errs,warns:warns};
 }
-function toRaw(items){var t=[],m={};items.forEach(function(x){if(!(x.t in m)){m[x.t]=t.length;t.push(x.t);}});return {t:t,q:items.map(function(x){var r=[m[x.t],x.q,x.o,x.a];if(x.e||x.n||x.m)r.push(x.e||'');if(x.n||x.m)r.push(x.n||'');if(x.m)r.push(x.m);return r;})};}
+function toRaw(items){var t=[],m={};items.forEach(function(x){if(!(x.t in m)){m[x.t]=t.length;t.push(x.t);}});return {t:t,q:items.map(function(x){var r=[m[x.t],x.q,x.o,x.a];if(x.e||x.m||x.k)r.push(x.e||'');if(x.m||x.k)r.push(x.m||'');if(x.k)r.push(x.k);return r;})};}
 
 /* ================= TRẠNG THÁI ================= */
 var CUR=null,WORK=null,CURPW='',CFG={ten:'Ôn tập Quy hoạch',nam:2026,need:false},PENDQ=null;
@@ -437,7 +437,7 @@ function dataDiff(){
   Object.keys(A).forEach(function(k){if(!B[k])del++;});
   if(add)out.push('Thêm '+fmt(add)+' câu hỏi');
   if(del)out.push('Bỏ '+fmt(del)+' câu hỏi');
-  if(chg)out.push('Sửa '+fmt(chg)+' câu (đáp án, giải thích, điểm dễ nhầm, mẹo nhớ hoặc chủ đề)');
+  if(chg)out.push('Sửa '+fmt(chg)+' câu (đáp án, giải thích, mẹo nhớ hoặc chủ đề)');
   var nt=WORK.t.filter(function(x){return CUR.t.indexOf(x)<0;}),ot=CUR.t.filter(function(x){return WORK.t.indexOf(x)<0;});
   if(nt.length)out.push('Chủ đề mới: '+nt.join(', '));
   if(ot.length)out.push('Bỏ chủ đề: '+ot.join(', '));
@@ -551,7 +551,7 @@ $('bExport').onclick=function(){
   if(!WORK)return;
   var rows=[['TT','NỘI DUNG CÂU HỎI','A','B','C','D','E','F','G','Đápán','chuDe','Giải thích','Điểm dễ nhầm','Mẹo nhớ']];
   WORK.q.forEach(function(q,i){var r=[i+1,q[1]];for(var k=0;k<7;k++)r.push(q[2][k]||'');r.push(q[3].map(function(a){return 'ABCDEFG'[a];}).join(';'));r.push(WORK.t[q[0]]);r.push(q[4]||'');r.push(q[5]||'');r.push(q[6]||'');rows.push(r);});
-  download(writeXlsx('Data',rows,[6,70,28,28,28,28,18,18,18,9,30,50]),'cau-hoi-on-tap-'+today().replace(/\//g,'-')+'.xlsx');
+  download(writeXlsx('Data',rows,[6,70,28,28,28,28,18,18,18,9,30,50,40,40]),'cau-hoi-on-tap-'+today().replace(/\//g,'-')+'.xlsx');
 };
 
 /* ================= CHỦ ĐỀ ================= */
