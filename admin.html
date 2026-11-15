@@ -70,7 +70,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div class="wrap">
   <h1>Quản trị app ôn tập</h1>
-  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 3.2 · 15/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
+  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 3.3 · 15/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
     <h2><span class="n">1</span>Kết nối GitHub</h2>
@@ -129,7 +129,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <div class="pane" id="pS">
       <label class="f" style="margin-top:0">Tên phiên bản bộ câu hỏi (hiện cho người dùng)</label>
       <input type="text" id="dataName" placeholder="Ví dụ: Bản 12/10/2026 – bổ sung chủ đề CX">
-      <p class="hint" style="margin-top:6px">Để trống thì tự đặt là "Bản ngày đăng". Ngày cập nhật được ghi tự động mỗi lần đăng.</p>
+      <p class="hint" style="margin-top:6px">Nếu giữ nguyên tên cũ hoặc để trống mà có thay đổi câu hỏi, app tự đặt tên mới "Bản ngày đăng". Tên phiên bản và ngày cập nhật chỉ thay đổi khi có thay đổi về câu hỏi/chủ đề.</p>
       <div class="row">
         <div><label class="f">Tên app</label><input type="text" id="appName"></div>
         <div style="max-width:160px"><label class="f">Năm</label><input type="number" id="appYear" min="2000" max="2100"></div>
@@ -150,7 +150,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <h2><span class="n">4</span>Đăng lên</h2>
     <p class="hint">Kiểm tra tóm tắt thay đổi rồi bấm Đăng. App của mọi người sẽ nhận bản mới khi mở lại lúc có mạng.</p>
     <div id="changes"></div>
-    <label class="f">Ghi chú lần đăng (không bắt buộc)</label>
+    <label class="f">Ghi chú cho người dùng (hiện trong mục "Có gì mới" khi có thay đổi câu hỏi – không bắt buộc)</label>
     <input type="text" id="note" placeholder="Ví dụ: Bổ sung 50 câu chủ đề Thẻ">
     <div style="margin-top:12px"><button class="btn pri" id="bPublish">Đăng lên</button></div>
     <div id="s4"></div>
@@ -427,11 +427,41 @@ function changes(){
   if($('newPw').value)out.push('Đổi mật khẩu');
   return out;
 }
+function dataDiff(){
+  if(!CUR)return [];
+  var out=[];
+  function key(q){return q[1]+'|'+q[2].join('|');}
+  function mp(d){var m={};d.q.forEach(function(q){m[key(q)]={a:q[3].join(','),e:q[4]||'',t:d.t[q[0]]};});return m;}
+  var A=mp(CUR),B=mp(WORK),add=0,del=0,chg=0;
+  Object.keys(B).forEach(function(k){if(!A[k])add++;else if(A[k].a!==B[k].a||A[k].e!==B[k].e||A[k].t!==B[k].t)chg++;});
+  Object.keys(A).forEach(function(k){if(!B[k])del++;});
+  if(add)out.push('Thêm '+fmt(add)+' câu hỏi');
+  if(del)out.push('Bỏ '+fmt(del)+' câu hỏi');
+  if(chg)out.push('Sửa '+fmt(chg)+' câu (đáp án, giải thích hoặc chủ đề)');
+  var nt=WORK.t.filter(function(x){return CUR.t.indexOf(x)<0;}),ot=CUR.t.filter(function(x){return WORK.t.indexOf(x)<0;});
+  if(nt.length)out.push('Chủ đề mới: '+nt.join(', '));
+  if(ot.length)out.push('Bỏ chủ đề: '+ot.join(', '));
+  var h1=CUR.hidden||[],h2=WORK.hidden||[];
+  var hid=h2.filter(function(x){return h1.indexOf(x)<0&&WORK.t.indexOf(x)>=0;}),shw=h1.filter(function(x){return h2.indexOf(x)<0&&WORK.t.indexOf(x)>=0;});
+  if(hid.length)out.push('Tạm ẩn chủ đề: '+hid.join(', '));
+  if(shw.length)out.push('Mở lại chủ đề: '+shw.join(', '));
+  if(out.length){var vis=WORK.t.filter(function(x){return h2.indexOf(x)<0;}).length;out.push('Hiện có '+fmt(WORK.q.length)+' câu, '+vis+' chủ đề');}
+  return out;
+}
+function nextName(){
+  var typed=$('dataName').value.trim(),cur=(CUR.meta&&CUR.meta.name)||'';
+  if(typed&&typed!==cur)return typed;
+  var used={};((CUR.meta&&CUR.meta.log)||[]).forEach(function(x){used[x.v]=1;});used[cur]=1;
+  var base='Bản '+today(),n=base,i=2;while(used[n]){n=base+' – lần '+i;i++;}
+  return n;
+}
 function refresh(){
   if(!CUR)return;
   var ch=changes();
   $('dirty').innerHTML=ch.length?'<span class="badge">Có thay đổi chưa đăng</span>':'';
-  $('changes').innerHTML=ch.length?'<div class="status info"><b>Sẽ đăng các thay đổi:</b><br>• '+ch.map(esc).join('<br>• ')+'</div>':'<div class="status ok">Chưa có thay đổi nào so với bản đang chạy.</div>';
+  var dd=dataDiff();
+  $('changes').innerHTML=ch.length?'<div class="status info"><b>Sẽ đăng các thay đổi:</b><br>• '+ch.map(esc).join('<br>• ')+'</div>'+
+    (dd.length?'<div class="status ok"><b>Sẽ ghi vào mục "Có gì mới" của người dùng, tên phiên bản: '+esc(nextName())+'</b><br>• '+dd.map(esc).join('<br>• ')+'<br><i>(kèm ghi chú bên dưới nếu có)</i></div>':'<div class="status info">Lần đăng này không thay đổi câu hỏi/chủ đề nên không ghi vào mục "Có gì mới".</div>'):'<div class="status ok">Chưa có thay đổi nào so với bản đang chạy.</div>';
   $('bPublish').disabled=!ch.length;
 }
 
@@ -578,7 +608,9 @@ $('bPublish').onclick=function(){
     if(!ok)return;
     var pw=np||CURPW,note=$('note').value.trim();
     var dn=$('dataName').value.trim()||('Bản '+today());
-    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},meta:{updated:today(),note:note,name:dn,rev:((CUR.meta&&CUR.meta.rev)||1)+1}};
+    var dd=dataDiff(),log=((CUR.meta&&CUR.meta.log)||[]).slice();
+    if(dd.length){dn=nextName();if(note)dd.unshift(note);log.unshift({v:dn,d:today(),n:dd});log=log.slice(0,60);}
+    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},meta:{updated:dd.length?today():((CUR.meta&&CUR.meta.updated)||today()),note:note,name:dd.length?dn:((CUR.meta&&CUR.meta.name)||dn),rev:((CUR.meta&&CUR.meta.rev)||1)+1,log:log}};
     var msg='['+dn+'] Cập nhật: '+fmt(data.q.length)+' câu, '+data.t.length+' chủ đề, '+fmt(Object.keys(data.codes).length)+' mã CB'+(np?', đổi mật khẩu':'')+(note?' – '+note:'');
     $('bPublish').disabled=true;st('s4','info','Đang khóa dữ liệu và đăng lên GitHub… (khoảng 10–30 giây)');
     encrypt(data,pw).then(function(enc){return putFile('data.json',enc,msg);})

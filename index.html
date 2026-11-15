@@ -15,13 +15,7 @@
 <script src="config.js"></script>
 <script src="online.js"></script>
 <script>var NAM=(window.NAM_ON_TAP||2026),TEN=(window.TEN_APP||"Ôn tập Quy hoạch");document.title=TEN+" "+NAM;
-var APP_VER="3.2",APP_DATE="15/11/2026",APP_AUTHOR="Tác giả: NAMNT4-CN ĐẮK LẮK",CHANGELOG=[
- ["3.2","15/11/2026","Hiện phiên bản app, tên phiên bản và ngày cập nhật bộ câu hỏi, thông tin tác giả; xem mục Có gì mới."],
- ["3.1","15/11/2026","Hiện số người đang ôn tập và số người ôn cùng chủ đề."],
- ["3.0","15/11/2026","Đăng nhập bằng mã cán bộ, chữ chìm theo mã cán bộ; hiện giải thích đáp án; có trang quản trị cập nhật câu hỏi."],
- ["2.1","15/11/2026","Đổi tên app theo năm 2026."],
- ["2.0","15/11/2026","Thêm trò chơi: Hành trình, Sinh tồn, Đua 60 giây; điểm kinh nghiệm, cấp độ, chuỗi ngày học."],
- ["1.0","07/11/2026","Ôn tập và thi thử trên điện thoại."]];</script>
+var APP_VER="3.3",APP_DATE="15/11/2026",APP_AUTHOR="Tác giả: NAMNT4-CN ĐẮK LẮK";</script>
 <style>
 :root{
   --bg:#f3f5f8;--card:#fff;--ink:#16202c;--mute:#5d6b7a;--line:#dde3ea;
@@ -265,8 +259,8 @@ function home(){
   h+='<div class="lbl">Tìm câu hỏi</div><div class="row"><input type="search" id="qs" placeholder="Gõ từ khóa trong câu hỏi…"><button class="btn" id="qsb" style="flex:none">Tìm</button></div>';
   var M=RAW.meta||{};
   h+='<div style="margin-top:18px;text-align:center"><button class="btn ghost" id="reset" style="color:var(--bad)">Xóa toàn bộ kết quả đã làm</button>'+
-    '<div class="ver">'+(M.updated?'Bộ câu hỏi: '+(M.name?'<b>'+esc(M.name)+'</b> · ':'')+'cập nhật '+esc(M.updated)+'<br>':'')+
-    '<button class="vlink" id="verBtn">ⓘ Phiên bản '+APP_VER+' · '+APP_DATE+' · Có gì mới?</button><br><span class="author">'+esc(APP_AUTHOR)+'</span></div></div>';
+    '<div class="ver">'+(M.updated?'Bộ câu hỏi: '+(M.name?'<b>'+esc(M.name)+'</b> · ':'')+'cập nhật '+esc(M.updated)+'<br><button class="vlink" id="verBtn">📋 Có gì mới trong bộ câu hỏi?</button><br>':'')+
+    'Phiên bản app '+APP_VER+' · '+APP_DATE+'<br><span class="author">'+esc(APP_AUTHOR)+'</span></div></div>';
   app.innerHTML=h;
   var st=document.createElement('div');st.className='sticky';st.id='homeBar';
   st.innerHTML='<div class="in"><button class="btn pri" id="go"'+(poolN?'':' disabled')+'>'+startLabel(poolN)+'</button></div>';
@@ -279,8 +273,9 @@ function home(){
   document.getElementById('clr').onclick=function(){store.sel=[];save();home();};
   bindTopics();
   document.getElementById('go').onclick=start;
-  document.getElementById('verBtn').onclick=function(){
-    openSheet('<h3>Có gì mới</h3>'+CHANGELOG.map(function(c,i){return '<div class="cl"><b>Phiên bản '+c[0]+'</b> <span>'+c[1]+(i===0?' · đang dùng':'')+'</span><div>'+esc(c[2])+'</div></div>';}).join('')+'<div class="author" style="text-align:center;margin-top:12px">'+esc(APP_AUTHOR)+'</div><div style="margin-top:12px"><button class="btn" style="width:100%" id="clx">Đóng</button></div>');
+  var vb=document.getElementById('verBtn');if(vb)vb.onclick=function(){
+    var LOG=(M.log&&M.log.length)?M.log:[{v:M.name||'Bộ câu hỏi',d:M.updated||'',n:[M.note||'']}];
+    openSheet('<h3>Có gì mới trong bộ câu hỏi</h3>'+LOG.map(function(c,i){return '<div class="cl"><b>'+esc(c.v)+'</b> <span>'+esc(c.d)+(i===0?' · đang dùng':'')+'</span>'+(c.n||[]).filter(Boolean).map(function(x){return '<div>• '+esc(x)+'</div>';}).join('')+'</div>';}).join('')+'<div class="author" style="text-align:center;margin-top:12px">'+esc(APP_AUTHOR)+'</div><div style="margin-top:12px"><button class="btn" style="width:100%" id="clx">Đóng</button></div>');
     document.getElementById('clx').onclick=closeSheet;};
   bindGameHome();document.getElementById('snd').onclick=function(){store.snd=!store.snd;save();this.textContent=store.snd?'🔊':'🔇';if(store.snd)beep(true);};
   document.getElementById('qsb').onclick=searchQ;
