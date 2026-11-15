@@ -70,7 +70,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div class="wrap">
   <h1>Quản trị app ôn tập</h1>
-  <p class="sub">Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
+  <p class="sub">Phiên bản 3.2 · 15/11/2026. Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
     <h2><span class="n">1</span>Kết nối GitHub</h2>
@@ -127,6 +127,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
 
     <div class="pane" id="pS">
+      <label class="f" style="margin-top:0">Tên phiên bản bộ câu hỏi (hiện cho người dùng)</label>
+      <input type="text" id="dataName" placeholder="Ví dụ: Bản 12/10/2026 – bổ sung chủ đề CX">
+      <p class="hint" style="margin-top:6px">Để trống thì tự đặt là "Bản ngày đăng". Ngày cập nhật được ghi tự động mỗi lần đăng.</p>
       <div class="row">
         <div><label class="f">Tên app</label><input type="text" id="appName"></div>
         <div style="max-width:160px"><label class="f">Năm</label><input type="number" id="appYear" min="2000" max="2100"></div>
@@ -388,7 +391,7 @@ function syncCodes(){var p=parseCodes($('codes').value);WORK.codes=p.codes;var n
   refresh();}
 function renderSummary(){
   var hidden=(WORK.hidden||[]).length,codes=Object.keys(WORK.codes||{}).length;
-  $('sum').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(WORK.q.length)+'</b><span>câu hỏi</span></div><div class="stat"><b>'+fmt(WORK.t.length)+'</b><span>chủ đề'+(hidden?' ('+hidden+' ẩn)':'')+'</span></div><div class="stat"><b>'+fmt(codes)+'</b><span>mã cán bộ</span></div><div class="stat"><b>'+esc((WORK.meta&&WORK.meta.updated)||'–')+'</b><span>cập nhật lần cuối</span></div></div>';
+  $('sum').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(WORK.q.length)+'</b><span>câu hỏi</span></div><div class="stat"><b>'+fmt(WORK.t.length)+'</b><span>chủ đề'+(hidden?' ('+hidden+' ẩn)':'')+'</span></div><div class="stat"><b>'+fmt(codes)+'</b><span>mã cán bộ</span></div><div class="stat"><b>'+esc((WORK.meta&&WORK.meta.updated)||'–')+'</b><span>cập nhật lần cuối'+(WORK.meta&&WORK.meta.name?'<br>'+esc(WORK.meta.name):'')+'</span></div></div>';
 }
 function renderTopics(){
   var cnt=WORK.t.map(function(){return 0;});WORK.q.forEach(function(q){cnt[q[0]]++;});
@@ -403,7 +406,7 @@ function renderTopics(){
 function loadIntoUI(){
   renderSummary();renderTopics();
   $('codes').value=codesText(WORK.codes||{});
-  $('needCode').checked=!!CFG.need;$('appName').value=CFG.ten;$('appYear').value=CFG.nam;
+  $('needCode').checked=!!CFG.need;$('appName').value=CFG.ten;$('appYear').value=CFG.nam;$('dataName').value=(WORK.meta&&WORK.meta.name)||'';
   syncCodes();
   ['c3','c4'].forEach(function(id){$(id).classList.remove('lock');});
   refresh();
@@ -420,6 +423,7 @@ function changes(){
   if(JSON.stringify(CUR.codes||{})!==JSON.stringify(WORK.codes||{}))out.push('Danh sách mã cán bộ: '+fmt(Object.keys(WORK.codes||{}).length)+' mã (trước: '+fmt(Object.keys(CUR.codes||{}).length)+')');
   if(c.need!==CFG.need)out.push(c.need?'Bật bắt buộc nhập mã cán bộ':'Tắt bắt buộc nhập mã cán bộ');
   if(c.ten!==CFG.ten||String(c.nam)!==String(CFG.nam))out.push('Tên app: '+c.ten+' '+c.nam);
+  var dn=$('dataName').value.trim();if(dn!==((CUR.meta&&CUR.meta.name)||''))out.push('Tên phiên bản bộ câu hỏi: '+(dn||'(tự đặt theo ngày đăng)'));
   if($('newPw').value)out.push('Đổi mật khẩu');
   return out;
 }
@@ -539,7 +543,7 @@ $('fc').onchange=function(){
 };
 
 /* ================= CÀI ĐẶT ================= */
-['appName','appYear','newPw','newPw2'].forEach(function(id){$(id).oninput=refresh;});
+['appName','appYear','newPw','newPw2','dataName'].forEach(function(id){$(id).oninput=refresh;});
 
 /* ================= LỊCH SỬ ================= */
 $('bHist').onclick=function(){
@@ -573,14 +577,15 @@ $('bPublish').onclick=function(){
   confirmBox('Đăng các thay đổi sau lên app?<br><br>• '+ch.map(esc).join('<br>• ')).then(function(ok){
     if(!ok)return;
     var pw=np||CURPW,note=$('note').value.trim();
-    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},meta:{updated:today(),note:note}};
-    var msg='Cập nhật: '+fmt(data.q.length)+' câu, '+data.t.length+' chủ đề, '+fmt(Object.keys(data.codes).length)+' mã CB'+(np?', đổi mật khẩu':'')+(note?' – '+note:'');
+    var dn=$('dataName').value.trim()||('Bản '+today());
+    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},meta:{updated:today(),note:note,name:dn,rev:((CUR.meta&&CUR.meta.rev)||1)+1}};
+    var msg='['+dn+'] Cập nhật: '+fmt(data.q.length)+' câu, '+data.t.length+' chủ đề, '+fmt(Object.keys(data.codes).length)+' mã CB'+(np?', đổi mật khẩu':'')+(note?' – '+note:'');
     $('bPublish').disabled=true;st('s4','info','Đang khóa dữ liệu và đăng lên GitHub… (khoảng 10–30 giây)');
     encrypt(data,pw).then(function(enc){return putFile('data.json',enc,msg);})
     .then(function(){return (cfgText(c)!==cfgText(CFG))?putFile('config.js',cfgText(c),'Cài đặt: '+c.ten+' '+c.nam+(c.need?' · bắt buộc mã CB':'')):null;})
     .then(function(){
       CUR=JSON.parse(JSON.stringify(data));WORK=JSON.parse(JSON.stringify(data));CFG=c;CURPW=pw;
-      $('newPw').value='';$('newPw2').value='';$('note').value='';$('curPw').value=pw;$('hist').innerHTML='';
+      $('newPw').value='';$('newPw2').value='';$('note').value='';$('dataName').value=dn;$('curPw').value=pw;$('hist').innerHTML='';
       var link='https://'+GH.owner+'.github.io/'+GH.repo+'/';
       st('s4','ok','✓ Đã đăng xong. Khoảng 1–2 phút nữa app sẽ có bản mới: <a href="'+link+'" target="_blank" rel="noopener">'+esc(link)+'</a>'+(np?'<br><b>Nhớ gửi mật khẩu mới cho mọi người.</b>':''));
       renderSummary();refresh();

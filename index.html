@@ -14,7 +14,14 @@
 <title>Ôn tập Quy hoạch</title>
 <script src="config.js"></script>
 <script src="online.js"></script>
-<script>var NAM=(window.NAM_ON_TAP||2026),TEN=(window.TEN_APP||"Ôn tập Quy hoạch");document.title=TEN+" "+NAM;</script>
+<script>var NAM=(window.NAM_ON_TAP||2026),TEN=(window.TEN_APP||"Ôn tập Quy hoạch");document.title=TEN+" "+NAM;
+var APP_VER="3.2",APP_DATE="15/11/2026",CHANGELOG=[
+ ["3.2","15/11/2026","Hiện phiên bản app, tên phiên bản và ngày cập nhật bộ câu hỏi; xem mục Có gì mới."],
+ ["3.1","15/11/2026","Hiện số người đang ôn tập và số người ôn cùng chủ đề."],
+ ["3.0","15/11/2026","Đăng nhập bằng mã cán bộ, chữ chìm theo mã cán bộ; hiện giải thích đáp án; có trang quản trị cập nhật câu hỏi."],
+ ["2.1","15/11/2026","Đổi tên app theo năm 2026."],
+ ["2.0","15/11/2026","Thêm trò chơi: Hành trình, Sinh tồn, Đua 60 giây; điểm kinh nghiệm, cấp độ, chuỗi ngày học."],
+ ["1.0","07/11/2026","Ôn tập và thi thử trên điện thoại."]];</script>
 <style>
 :root{
   --bg:#f3f5f8;--card:#fff;--ink:#16202c;--mute:#5d6b7a;--line:#dde3ea;
@@ -174,6 +181,9 @@ input[type=search],input[type=number],input[type=password],input[type=text],sele
 .sndbtn{font-size:18px}
 .expl{margin-top:10px;padding:12px;border-radius:12px;background:var(--pri2);font-size:15px}
 .res-item .l.ex{color:var(--mute);font-size:13.5px}
+.ver{font-size:12.5px;color:var(--mute);margin-top:8px;line-height:1.6}
+.vlink{color:var(--pri);font-size:12.5px;text-decoration:underline;padding:4px}
+.cl{padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.cl span{color:var(--mute);font-size:12.5px}.cl div{margin-top:2px}
 .online{color:var(--ok);font-weight:600;font-size:12.5px}
 .online:empty{display:none}
 .wm{position:fixed;inset:0;pointer-events:none;z-index:35;background-repeat:repeat}
@@ -252,7 +262,10 @@ function home(){
   h+='<div class="row"><input type="search" id="tf" placeholder="Tìm chủ đề…" value="'+esc(filter)+'"><button class="btn" id="clr" style="flex:none">Bỏ chọn</button></div>';
   h+='<div class="topics" id="tl">'+topicList(selSet)+'</div>';
   h+='<div class="lbl">Tìm câu hỏi</div><div class="row"><input type="search" id="qs" placeholder="Gõ từ khóa trong câu hỏi…"><button class="btn" id="qsb" style="flex:none">Tìm</button></div>';
-  h+='<div style="margin-top:18px;text-align:center"><button class="btn ghost" id="reset" style="color:var(--bad)">Xóa toàn bộ kết quả đã làm</button>'+(RAW.meta&&RAW.meta.updated?'<div style="font-size:12.5px;color:var(--mute);margin-top:6px">Bộ câu hỏi cập nhật ngày '+esc(RAW.meta.updated)+'</div>':'')+'</div>';
+  var M=RAW.meta||{};
+  h+='<div style="margin-top:18px;text-align:center"><button class="btn ghost" id="reset" style="color:var(--bad)">Xóa toàn bộ kết quả đã làm</button>'+
+    '<div class="ver">'+(M.updated?'Bộ câu hỏi: '+(M.name?'<b>'+esc(M.name)+'</b> · ':'')+'cập nhật '+esc(M.updated)+'<br>':'')+
+    '<button class="vlink" id="verBtn">ⓘ Phiên bản '+APP_VER+' · '+APP_DATE+' · Có gì mới?</button></div></div>';
   app.innerHTML=h;
   var st=document.createElement('div');st.className='sticky';st.id='homeBar';
   st.innerHTML='<div class="in"><button class="btn pri" id="go"'+(poolN?'':' disabled')+'>'+startLabel(poolN)+'</button></div>';
@@ -265,6 +278,9 @@ function home(){
   document.getElementById('clr').onclick=function(){store.sel=[];save();home();};
   bindTopics();
   document.getElementById('go').onclick=start;
+  document.getElementById('verBtn').onclick=function(){
+    openSheet('<h3>Có gì mới</h3>'+CHANGELOG.map(function(c,i){return '<div class="cl"><b>Phiên bản '+c[0]+'</b> <span>'+c[1]+(i===0?' · đang dùng':'')+'</span><div>'+esc(c[2])+'</div></div>';}).join('')+'<div style="margin-top:12px"><button class="btn" style="width:100%" id="clx">Đóng</button></div>');
+    document.getElementById('clx').onclick=closeSheet;};
   bindGameHome();document.getElementById('snd').onclick=function(){store.snd=!store.snd;save();this.textContent=store.snd?'🔊':'🔇';if(store.snd)beep(true);};
   document.getElementById('qsb').onclick=searchQ;
   document.getElementById('qs').onkeydown=function(e){if(e.key==='Enter')searchQ();};
@@ -616,7 +632,7 @@ function form(msg){
   '<input type="password" id="pw" placeholder="Mật khẩu" autocomplete="current-password" style="text-align:center;margin-bottom:10px">'+
   '<label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:14px;color:var(--mute);margin-bottom:14px"><input type="checkbox" id="rm" checked> Ghi nhớ trên máy này</label>'+
   '<button class="btn pri" style="width:100%" id="pb">Mở</button></form><p id="pm" style="color:var(--bad);min-height:24px;margin-top:12px">'+(msg||'')+'</p>'+
-  '<p style="font-size:12.5px;color:var(--mute);margin-top:18px">Tài liệu nội bộ – không chia sẻ ra ngoài.</p></div>';
+  '<p style="font-size:12.5px;color:var(--mute);margin-top:18px">Tài liệu nội bộ – không chia sẻ ra ngoài.<br>Phiên bản '+APP_VER+' · cập nhật '+APP_DATE+'</p></div>';
   document.getElementById('pf').onsubmit=function(e){e.preventDefault();
     var pw=document.getElementById('pw').value.trim(),ma=NEED?normCode(document.getElementById('ma').value):'';
     if(NEED&&!ma){document.getElementById('pm').textContent=MSG.nocode;return;}
