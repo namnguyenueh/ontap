@@ -972,6 +972,7 @@ function check(raw,code){
   var codes=raw.codes||{},user={code:'',name:''};
   if(NEED){
     if(!code)throw 'nocode';
+    if(/^\d+$/.test(code))throw 'numcode';
     if(Object.keys(codes).length&&!Object.prototype.hasOwnProperty.call(codes,code))throw 'badcode';
     user.code=code;user.name=codes[code]||'';
   }
@@ -989,7 +990,7 @@ function start(raw,user){
   if(window.ONLINE)ONLINE.start();
   watermark(user.code||'TÀI LIỆU NỘI BỘ');
 }
-var MSG={pw:'Sai mật khẩu, vui lòng thử lại.',nocode:'Vui lòng nhập User AD cán bộ.',badcode:'User AD này không có trong danh sách được phép sử dụng.',nocrypto:'Trình duyệt này không hỗ trợ. Hãy mở bằng Safari hoặc Chrome qua đường link https.'};
+var MSG={pw:'Sai mật khẩu, vui lòng thử lại.',nocode:'Vui lòng nhập User AD cán bộ.',numcode:'User AD không được là dãy toàn số. Vui lòng nhập đúng User AD (ví dụ: NAMNT4).',badcode:'User AD này không có trong danh sách được phép sử dụng.',nocrypto:'Trình duyệt này không hỗ trợ. Hãy mở bằng Safari hoặc Chrome qua đường link https.'};
 function form(msg){
   var sc=get(CK)||'';
   document.getElementById('bar').innerHTML='';
@@ -1002,6 +1003,7 @@ function form(msg){
   document.getElementById('pf').onsubmit=function(e){e.preventDefault();
     var pw=document.getElementById('pw').value.trim(),ma=NEED?normCode(document.getElementById('ma').value):'';
     if(NEED&&!ma){document.getElementById('pm').textContent=MSG.nocode;return;}
+    if(NEED&&/^\d+$/.test(ma)){document.getElementById('pm').textContent=MSG.numcode;document.getElementById('ma').focus();return;}
     if(!pw)return;
     var bt=document.getElementById('pb');bt.disabled=true;bt.textContent='Đang mở…';
     unlock(pw).then(function(raw){
@@ -1018,7 +1020,8 @@ function boot(){
     app.innerHTML='<div class="empty" style="margin-top:30vh">Đang mở…</div>';
     unlock(pw).then(function(raw){start(raw,check(raw,ma));}).catch(function(err){
       if(err==='pw')set(PK,null);
-      form(err==='badcode'?MSG.badcode:(err==='nocode'?'':MSG.pw.replace('Sai mật khẩu','Mật khẩu đã được thay đổi')));
+      if(err==='numcode')set(CK,null);
+      form(err==='numcode'?MSG.numcode:err==='badcode'?MSG.badcode:(err==='nocode'?'':MSG.pw.replace('Sai mật khẩu','Mật khẩu đã được thay đổi')));
     });
   } else form();
 }
