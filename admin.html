@@ -52,7 +52,13 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
 .rep{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
 .rep div{padding:7px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
 .rep .e{color:var(--bad)}.rep .w{color:var(--warn)}
-.tlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin-top:8px}
+.tlist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.ti .tn{flex:none;width:26px;height:26px;border-radius:8px;background:var(--pri2,#e4effa);color:var(--pri,#005b9a);display:flex;align-items:center;justify-content:center;font-size:12.5px}
+.ti .tl{display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer}
+.ti .mv{display:flex;gap:4px;flex:none}
+.ti .mv button{width:34px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--card,#fff);cursor:pointer;font-size:13px;color:var(--pri,#005b9a)}
+.ti .mv button:disabled{opacity:.3;cursor:default}
+.ti.moved{background:#fff7d6;transition:background .6s}
 .ti{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px}
 .ti input{width:18px;height:18px;flex:none}
 .ti.off{opacity:.5;text-decoration:line-through}
@@ -158,7 +164,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
 
     <div class="pane" id="pT">
-      <p class="hint">Bỏ chọn để <b>ẩn</b> chủ đề khỏi app (câu hỏi vẫn được giữ lại, có thể hiện lại bất cứ lúc nào).</p>
+      <p class="hint">Bấm <b>▲ ▼</b> để sắp xếp thứ tự chủ đề hiển thị trong app. Bỏ chọn để <b>ẩn</b> chủ đề khỏi app (câu hỏi vẫn được giữ lại, có thể hiện lại bất cứ lúc nào).</p>
       <div class="row" style="flex-wrap:nowrap"><button class="btn sm" id="bAllOn" style="flex:none">Hiện tất cả</button><span id="tCount" style="color:var(--mute);align-self:center"></span></div>
       <div class="tlist" id="tlist"></div>
     </div>
@@ -448,12 +454,22 @@ function renderSummary(){
 function renderTopics(){
   var cnt=WORK.t.map(function(){return 0;});WORK.q.forEach(function(q){cnt[q[0]]++;});
   var hid={};(WORK.hidden||[]).forEach(function(n){hid[n]=1;});
-  $('tlist').innerHTML=WORK.t.map(function(n,i){return '<label class="ti'+(hid[n]?' off':'')+'"><input type="checkbox" data-t="'+i+'"'+(hid[n]?'':' checked')+'><span>'+esc(n)+'</span><span class="c">'+cnt[i]+' câu</span></label>';}).join('');
+  var L=WORK.t.length;
+  $('tlist').innerHTML=WORK.t.map(function(n,i){return '<div class="ti'+(hid[n]?' off':'')+'"><b class="tn">'+(i+1)+'</b><label class="tl"><input type="checkbox" data-t="'+i+'"'+(hid[n]?'':' checked')+'><span>'+esc(n)+'</span></label><span class="c">'+cnt[i]+' câu</span>'+
+    '<span class="mv"><button data-mv="'+i+'" data-d="-1" title="Đưa lên"'+(i?'':' disabled')+'>▲</button><button data-mv="'+i+'" data-d="1" title="Đưa xuống"'+(i<L-1?'':' disabled')+'>▼</button></span></div>';}).join('');
+  Array.prototype.forEach.call($('tlist').querySelectorAll('[data-mv]'),function(b){b.onclick=function(){moveTopic(+b.dataset.mv,+b.dataset.d);};});
   $('tCount').textContent='Đang hiện '+(WORK.t.length-Object.keys(hid).length)+'/'+WORK.t.length+' chủ đề';
   Array.prototype.forEach.call($('tlist').querySelectorAll('input'),function(cb){cb.onchange=function(){
     var n=WORK.t[+cb.dataset.t],h=WORK.hidden||[];var k=h.indexOf(n);
     if(cb.checked&&k>=0)h.splice(k,1);if(!cb.checked&&k<0)h.push(n);WORK.hidden=h;
-    cb.parentNode.classList.toggle('off',!cb.checked);$('tCount').textContent='Đang hiện '+(WORK.t.length-h.length)+'/'+WORK.t.length+' chủ đề';renderSummary();refresh();};});
+    cb.closest('.ti').classList.toggle('off',!cb.checked);$('tCount').textContent='Đang hiện '+(WORK.t.length-h.length)+'/'+WORK.t.length+' chủ đề';renderSummary();refresh();};});
+}
+function moveTopic(i,d){
+  var j=i+d;if(j<0||j>=WORK.t.length)return;
+  var tmp=WORK.t[i];WORK.t[i]=WORK.t[j];WORK.t[j]=tmp;
+  WORK.q.forEach(function(q){if(q[0]===i)q[0]=j;else if(q[0]===j)q[0]=i;});
+  renderTopics();renderSummary();if(typeof fillTopicLists==='function')fillTopicLists();refresh();
+  var el=$('tlist').querySelectorAll('.ti')[j];if(el){el.classList.add('moved');setTimeout(function(){el.classList.remove('moved');},600);}
 }
 function loadIntoUI(){
   renderSummary();renderTopics();
@@ -466,7 +482,10 @@ function loadIntoUI(){
 function changes(){
   if(!CUR)return [];
   var out=[],c=curCfg();
-  if(JSON.stringify([CUR.t,CUR.q])!==JSON.stringify([WORK.t,WORK.q])){
+  var sameSet=CUR.t.length===WORK.t.length&&CUR.t.slice().sort().join('\u0001')===WORK.t.slice().sort().join('\u0001');
+  function canon(d){return d.q.map(function(q){return JSON.stringify([d.t[q[0]]].concat(q.slice(1)));}).join('\n');}
+  if(sameSet&&CUR.t.join('\u0001')!==WORK.t.join('\u0001')&&canon(CUR)===canon(WORK)){out.push('Đổi thứ tự hiển thị chủ đề: '+WORK.t.map(function(n,i){return (i+1)+'. '+n;}).join(' · '));}
+  else if(JSON.stringify([CUR.t,CUR.q])!==JSON.stringify([WORK.t,WORK.q])){
     var d=WORK.q.length-CUR.q.length,nt=WORK.t.filter(function(x){return CUR.t.indexOf(x)<0;}),ot=CUR.t.filter(function(x){return WORK.t.indexOf(x)<0;});
     out.push('Bộ câu hỏi mới: '+fmt(WORK.q.length)+' câu ('+(d>=0?'+':'')+fmt(d)+'), '+WORK.t.length+' chủ đề'+(nt.length?' · thêm chủ đề: '+nt.join(', '):'')+(ot.length?' · bỏ chủ đề: '+ot.join(', '):''));
   }
