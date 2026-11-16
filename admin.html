@@ -58,6 +58,18 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
 .badge{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--warnbg);color:var(--warn);font-size:13px;font-weight:700}
 .chk{display:flex;align-items:center;gap:8px;margin-top:10px;font-weight:600}
 .chk input{width:18px;height:18px}
+.ebox{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fbfcfe}
+.eopt{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.eopt b{width:22px;text-align:center}
+.eopt input[type=checkbox]{width:20px;height:20px;flex:none}
+.eopt input[type=text]{flex:1}
+.qi{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.qi .qt{font-weight:600;white-space:pre-line}
+.qi .qm{color:var(--mute);font-size:12.5px;margin:2px 0 6px}
+.qi .ok{color:var(--ok);font-weight:600}
+.qi .acts{margin-top:8px;display:flex;gap:6px}
+.modes .chk{font-weight:400;align-items:flex-start}
+.modes .chk input{margin-top:3px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:14px}
 .modal.show{display:flex}
 .modal .box{background:#fff;border-radius:14px;padding:18px;max-width:440px;width:100%}
@@ -70,7 +82,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div class="wrap">
   <h1>Quản trị app ôn tập</h1>
-  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.0 · 15/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
+  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.1 · 16/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
     <h2><span class="n">1</span>Kết nối GitHub</h2>
@@ -97,7 +109,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <div class="card lock" id="c3">
     <h2><span class="n">3</span>Chỉnh sửa <span id="dirty"></span></h2>
     <div class="tabs">
-      <button class="tab on" data-p="pQ">Câu hỏi</button>
+      <button class="tab on" data-p="pQ">Tải Excel câu hỏi</button>
+      <button class="tab" data-p="pE">Soạn &amp; sửa từng câu</button>
       <button class="tab" data-p="pT">Chủ đề</button>
       <button class="tab" data-p="pC">Mã cán bộ</button>
       <button class="tab" data-p="pS">Mật khẩu &amp; cài đặt</button>
@@ -106,10 +119,34 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 
     <div class="pane on" id="pQ">
       <p class="hint">Chọn file Excel (.xlsx hoặc .xlsm) theo đúng mẫu: sheet <b>Data</b> (hoặc sheet đầu tiên), dòng 1 là tiêu đề; cột B câu hỏi, cột C→I phương án A→G, cột J đáp án (nhiều đáp án ghi <code>A;B</code>), cột K chủ đề, cột L giải thích, cột M điểm dễ nhầm, cột N mẹo nhớ (3 cột này không bắt buộc). Cách dễ nhất: bấm <b>Tải bộ câu hỏi hiện tại</b>, sửa trong Excel rồi chọn lại file đó.</p>
-      <div class="row"><input type="file" id="fx" accept=".xlsx,.xlsm" style="flex:1"><button class="btn" id="bExport" style="flex:none">⬇ Tải bộ câu hỏi hiện tại (Excel)</button></div>
+      <div class="modes"><label class="chk"><input type="radio" name="qmode" value="add" checked> <span><b>Thêm vào bộ hiện có</b> – giữ nguyên câu đang có, câu trùng tự bỏ qua</span></label>
+      <label class="chk"><input type="radio" name="qmode" value="replace"> <span><b>Thay toàn bộ</b> – bộ câu hỏi trong file sẽ thay thế toàn bộ bộ đang chạy</span></label></div>
+      <div class="row" style="margin-top:8px"><input type="file" id="fx" accept=".xlsx,.xlsm" style="flex:1"><button class="btn" id="bExport" style="flex:none">⬇ Tải bộ câu hỏi hiện tại (Excel)</button></div>
       <div id="sQ"></div>
       <div id="repQ"></div>
       <div style="margin-top:10px"><button class="btn ok" id="bUseQ" style="display:none">Dùng bộ câu hỏi này</button></div>
+    </div>
+
+    <div class="pane" id="pE">
+      <div class="ebox">
+        <h3 id="eTitle" style="margin:0 0 8px;font-size:16px">Soạn câu hỏi mới</h3>
+        <label class="f">Chủ đề <span style="font-weight:400;color:var(--mute)">(chọn chủ đề có sẵn hoặc gõ tên chủ đề mới)</span></label>
+        <input type="text" id="eTopic" list="eTopics" placeholder="Ví dụ: 2026_KNL cốt lõi"><datalist id="eTopics"></datalist>
+        <label class="f">Nội dung câu hỏi</label>
+        <textarea id="eQ" style="min-height:90px;font-family:inherit;font-size:15px" placeholder="Nhập câu hỏi. Có thể xuống dòng để liệt kê 1., 2., 3."></textarea>
+        <label class="f">Phương án trả lời <span style="font-weight:400;color:var(--mute)">(tích ô bên trái cho đáp án đúng – được chọn nhiều đáp án)</span></label>
+        <div id="eOpts"></div>
+        <button class="btn sm" id="eAddOpt" type="button">+ Thêm phương án</button>
+        <label class="f">Giải thích <span style="font-weight:400;color:var(--mute)">(không bắt buộc)</span></label>
+        <textarea id="eEx" style="min-height:60px;font-family:inherit;font-size:14px"></textarea>
+        <div class="row"><div><label class="f">Điểm dễ nhầm <span style="font-weight:400;color:var(--mute)">(không bắt buộc)</span></label><textarea id="eTrap" style="min-height:50px;font-family:inherit;font-size:14px"></textarea></div>
+        <div><label class="f">Mẹo nhớ <span style="font-weight:400;color:var(--mute)">(không bắt buộc)</span></label><textarea id="eTip" style="min-height:50px;font-family:inherit;font-size:14px"></textarea></div></div>
+        <div class="row" style="margin-top:12px"><button class="btn ok" id="eSave" style="flex:none">Thêm vào bản nháp</button><button class="btn" id="eClear" style="flex:none">Làm mới biểu mẫu</button><span id="eCount" style="color:var(--mute);align-self:center"></span></div>
+        <div id="sE"></div>
+      </div>
+      <h3 style="margin:18px 0 6px;font-size:16px">Tìm, sửa hoặc xóa câu hỏi</h3>
+      <div class="row"><div><input type="text" id="fSearch" placeholder="Gõ từ khóa trong câu hỏi hoặc phương án…"></div><div style="max-width:300px"><select id="fTopic" style="width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff"></select></div></div>
+      <div id="fRes" style="margin-top:10px"></div>
     </div>
 
     <div class="pane" id="pT">
@@ -407,7 +444,7 @@ function loadIntoUI(){
   renderSummary();renderTopics();
   $('codes').value=codesText(WORK.codes||{});
   $('needCode').checked=!!CFG.need;$('appName').value=CFG.ten;$('appYear').value=CFG.nam;$('dataName').value=(WORK.meta&&WORK.meta.name)||'';
-  syncCodes();
+  syncCodes();fillTopicLists();searchQ();
   ['c3','c4'].forEach(function(id){$(id).classList.remove('lock');});
   refresh();
 }
@@ -520,6 +557,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.onc
   Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(x){x.classList.toggle('on',x===b);});
   Array.prototype.forEach.call(document.querySelectorAll('.pane'),function(p){p.classList.toggle('on',p.id===b.dataset.p);});
   if(b.dataset.p==='pH'&&!$('hist').innerHTML)$('bHist').click();
+  if(b.dataset.p==='pE')searchQ();
 };});
 
 /* ================= CÂU HỎI ================= */
@@ -536,23 +574,105 @@ $('fx').onchange=function(){
     if(p.errs.length){st('sQ','no',msg+'. Có <b>'+fmt(p.errs.length)+'</b> lỗi cần sửa trong file Excel trước khi dùng.');return;}
     if(!p.items.length){st('sQ','no','Không tìm thấy câu hỏi nào trong file.');return;}
     st('sQ',p.warns.length?'warn':'ok',msg+(p.warns.length?' · '+fmt(p.warns.length)+' cảnh báo (vẫn dùng được).':' · không có lỗi.'));
-    PENDQ=raw;$('bUseQ').style.display='inline-flex';
+    PENDQ=raw;
+    if(qmode()==='add'){var pv=previewMerge(raw);
+      if(!pv.add){st('sQ','warn',msg+'. Tất cả '+fmt(pv.dup)+' câu đều đã có trong bộ hiện tại – không có câu mới để thêm.');PENDQ=null;return;}
+      $('sQ').insertAdjacentHTML('beforeend','<div class="status info">Chế độ <b>Thêm vào</b>: sẽ thêm <b>'+fmt(pv.add)+'</b> câu mới'+(pv.dup?', bỏ qua <b>'+fmt(pv.dup)+'</b> câu đã có':'')+'. Bộ câu hỏi sau khi thêm: <b>'+fmt(WORK.q.length+pv.add)+'</b> câu.</div>');
+      $('bUseQ').textContent='Thêm '+fmt(pv.add)+' câu vào bản nháp';}
+    else{$('sQ').insertAdjacentHTML('beforeend','<div class="status warn">Chế độ <b>Thay toàn bộ</b>: bộ câu hỏi hiện tại ('+fmt(WORK.q.length)+' câu) sẽ được thay bằng '+fmt(raw.q.length)+' câu trong file.</div>');
+      $('bUseQ').textContent='Thay toàn bộ bằng bộ câu hỏi này';}
+    $('bUseQ').style.display='inline-flex';
   }).catch(function(e){st('sQ','no',esc(e.message||'Không đọc được file.'));});
   this.value='';
 };
 $('bUseQ').onclick=function(){
   if(!PENDQ)return;
-  WORK.t=PENDQ.t;WORK.q=PENDQ.q;WORK.hidden=(WORK.hidden||[]).filter(function(n){return WORK.t.indexOf(n)>=0;});
-  PENDQ=null;$('bUseQ').style.display='none';
-  st('sQ','ok','✓ Đã nạp bộ câu hỏi mới vào bản nháp. Kiểm tra ở mục 4 rồi bấm <b>Đăng lên</b>.');
-  renderSummary();renderTopics();refresh();
+  if(qmode()==='add'){var r=mergePending(PENDQ);PENDQ=null;$('bUseQ').style.display='none';
+    st('sQ','ok','✓ Đã thêm '+fmt(r.add)+' câu vào bản nháp'+(r.dup?' (bỏ qua '+fmt(r.dup)+' câu trùng)':'')+'. Kiểm tra ở mục 4 rồi bấm <b>Đăng lên</b>.');}
+  else{WORK.t=PENDQ.t;WORK.q=PENDQ.q;WORK.hidden=(WORK.hidden||[]).filter(function(n){return WORK.t.indexOf(n)>=0;});
+    PENDQ=null;$('bUseQ').style.display='none';
+    st('sQ','ok','✓ Đã thay bộ câu hỏi trong bản nháp. Kiểm tra ở mục 4 rồi bấm <b>Đăng lên</b>.');}
+  afterChange();
 };
+Array.prototype.forEach.call(document.querySelectorAll('input[name=qmode]'),function(r){r.onchange=function(){if(PENDQ){PENDQ=null;$('bUseQ').style.display='none';st('sQ','info','Đã đổi chế độ – hãy chọn lại file Excel.');$('repQ').innerHTML='';}};});
 $('bExport').onclick=function(){
   if(!WORK)return;
   var rows=[['TT','NỘI DUNG CÂU HỎI','A','B','C','D','E','F','G','Đápán','chuDe','Giải thích','Điểm dễ nhầm','Mẹo nhớ']];
   WORK.q.forEach(function(q,i){var r=[i+1,q[1]];for(var k=0;k<7;k++)r.push(q[2][k]||'');r.push(q[3].map(function(a){return 'ABCDEFG'[a];}).join(';'));r.push(WORK.t[q[0]]);r.push(q[4]||'');r.push(q[5]||'');r.push(q[6]||'');rows.push(r);});
   download(writeXlsx('Data',rows,[6,70,28,28,28,28,18,18,18,9,30,50,40,40]),'cau-hoi-on-tap-'+today().replace(/\//g,'-')+'.xlsx');
 };
+
+/* ================= THÊM / SOẠN / SỬA CÂU HỎI ================= */
+function qkey(q,opts){return String(q).trim()+'|'+opts.join('|');}
+function qmode(){var r=document.querySelector('input[name=qmode]:checked');return r?r.value:'add';}
+function normalizeWork(){ // bỏ chủ đề không còn câu nào, giữ thứ tự
+  var used={};WORK.q.forEach(function(q){used[q[0]]=1;});
+  var nt=[],map={};WORK.t.forEach(function(n,i){if(used[i]){map[i]=nt.length;nt.push(n);}});
+  WORK.q.forEach(function(q){q[0]=map[q[0]];});WORK.t=nt;
+  WORK.hidden=(WORK.hidden||[]).filter(function(n){return nt.indexOf(n)>=0;});
+}
+function topicIdx(name){var i=WORK.t.indexOf(name);if(i<0){WORK.t.push(name);i=WORK.t.length-1;}return i;}
+function mkRow(ti,q,opts,ans,e,m,k){var r=[ti,q,opts,ans];if(e||m||k)r.push(e||'');if(m||k)r.push(m||'');if(k)r.push(k);return r;}
+function afterChange(){normalizeWork();renderSummary();renderTopics();fillTopicLists();refresh();if($('pE').classList.contains('on'))searchQ();}
+function mergePending(raw){
+  var seen={},add=0,dup=0;WORK.q.forEach(function(q){seen[qkey(q[1],q[2])]=1;});
+  raw.q.forEach(function(q){var key=qkey(q[1],q[2]);if(seen[key]){dup++;return;}seen[key]=1;add++;
+    var r=q.slice();r[0]=topicIdx(raw.t[q[0]]);WORK.q.push(r);});
+  return {add:add,dup:dup};
+}
+function previewMerge(raw){var seen={},add=0,dup=0;WORK.q.forEach(function(q){seen[qkey(q[1],q[2])]=1;});
+  raw.q.forEach(function(q){var key=qkey(q[1],q[2]);if(seen[key])dup++;else{seen[key]=1;add++;}});return {add:add,dup:dup};}
+
+var EDIT=-1,SESSION=0;
+function optRow(i,val,checked){return '<div class="eopt"><input type="checkbox" data-c="'+i+'"'+(checked?' checked':'')+' title="Đáp án đúng"><b>'+'ABCDEFG'[i]+'</b><input type="text" data-o="'+i+'" value="'+esc(val||'')+'" placeholder="Phương án '+'ABCDEFG'[i]+'"></div>';}
+function renderOpts(vals,ans){vals=vals||['','','',''];ans=ans||[];$('eOpts').innerHTML=vals.map(function(v,i){return optRow(i,v,ans.indexOf(i)>=0);}).join('');$('eAddOpt').disabled=vals.length>=7;}
+function readOpts(){var v=[],c=[];Array.prototype.forEach.call($('eOpts').querySelectorAll('[data-o]'),function(el){v.push(el.value);});Array.prototype.forEach.call($('eOpts').querySelectorAll('[data-c]'),function(el){c.push(el.checked);});return {v:v,c:c};}
+$('eAddOpt').onclick=function(){var r=readOpts();if(r.v.length>=7)return;var a=[];r.c.forEach(function(x,i){if(x)a.push(i);});r.v.push('');renderOpts(r.v,a);};
+function clearForm(keepTopic){EDIT=-1;$('eTitle').textContent='Soạn câu hỏi mới';$('eSave').textContent='Thêm vào bản nháp';
+  if(!keepTopic)$('eTopic').value='';['eQ','eEx','eTrap','eTip'].forEach(function(id){$(id).value='';});renderOpts();}
+$('eClear').onclick=function(){clearForm(false);st('sE');};
+function fillTopicLists(){
+  if(!WORK)return;
+  $('eTopics').innerHTML=WORK.t.map(function(n){return '<option value="'+esc(n)+'">';}).join('');
+  var cur=$('fTopic').value;
+  $('fTopic').innerHTML='<option value="">Tất cả chủ đề</option>'+WORK.t.map(function(n,i){return '<option value="'+i+'">'+esc(n)+'</option>';}).join('');
+  if(cur&&+cur<WORK.t.length)$('fTopic').value=cur;
+}
+$('eSave').onclick=function(){
+  var topic=clean1($('eTopic').value),q=cleanQ($('eQ').value),r=readOpts(),ex=clean1($('eEx').value),trap=clean1($('eTrap').value),tip=clean1($('eTip').value);
+  if(!topic){st('sE','no','Vui lòng nhập hoặc chọn chủ đề.');return;}
+  if(!q){st('sE','no','Vui lòng nhập nội dung câu hỏi.');return;}
+  var opts=[],ans=[];r.v.forEach(function(v,i){v=clean1(v);if(v){if(r.c[i])ans.push(opts.length);opts.push(v);}else if(r.c[i]){ans.push(-1);}});
+  if(ans.indexOf(-1)>=0){st('sE','no','Có ô đáp án đúng được tích nhưng phương án đó đang trống.');return;}
+  if(opts.length<2){st('sE','no','Cần ít nhất 2 phương án.');return;}
+  if(!ans.length){st('sE','no','Hãy tích ít nhất 1 đáp án đúng (ô vuông bên trái phương án).');return;}
+  var key=qkey(q,opts),dupAt=-1;WORK.q.forEach(function(x,i){if(i!==EDIT&&qkey(x[1],x[2])===key)dupAt=i;});
+  if(dupAt>=0){st('sE','no','Câu hỏi này đã có trong bộ (trùng nội dung và phương án).');return;}
+  var row=mkRow(topicIdx(topic),q,opts,ans,ex,trap,tip);
+  if(EDIT>=0){WORK.q[EDIT]=row;st('sE','ok','✓ Đã cập nhật câu hỏi trong bản nháp. Nhớ bấm <b>Đăng lên</b> ở mục 4.');clearForm(true);}
+  else{WORK.q.push(row);SESSION++;st('sE','ok','✓ Đã thêm câu hỏi vào bản nháp (chủ đề "'+esc(topic)+'"). Có thể soạn tiếp câu sau, xong thì bấm <b>Đăng lên</b> ở mục 4.');clearForm(true);}
+  $('eCount').textContent=SESSION?'Đã soạn '+SESSION+' câu mới trong phiên này':'';
+  afterChange();$('eQ').focus();
+};
+function searchQ(){
+  if(!WORK)return;
+  var kw=norm($('fSearch').value.trim()),tf=$('fTopic').value,res=[];
+  WORK.q.forEach(function(q,i){if(tf!==''&&String(q[0])!==tf)return;if(kw&&norm(q[1]+' '+q[2].join(' ')).indexOf(kw)<0)return;res.push(i);});
+  var show=res.slice(-50).reverse();
+  $('fRes').innerHTML='<div style="color:var(--mute);font-size:13px;margin-bottom:6px">'+(kw||tf!==''?'Tìm thấy '+fmt(res.length)+' câu':'Tổng '+fmt(res.length)+' câu')+(res.length>50?' – hiển thị 50 câu (mới nhất trước), hãy gõ thêm từ khóa để thu hẹp':'')+'</div>'+
+    show.map(function(i){var q=WORK.q[i];return '<div class="qi"><div class="qt">'+esc(q[1])+'</div><div class="qm">'+esc(WORK.t[q[0]])+'</div>'+
+      q[2].map(function(o,j){return '<div'+(q[3].indexOf(j)>=0?' class="ok"':'')+'>'+'ABCDEFG'[j]+'. '+esc(o)+(q[3].indexOf(j)>=0?' ✓':'')+'</div>';}).join('')+
+      '<div class="acts"><button class="btn sm" data-ed="'+i+'">Sửa</button><button class="btn sm danger" data-del="'+i+'">Xóa</button></div></div>';}).join('');
+  Array.prototype.forEach.call($('fRes').querySelectorAll('[data-ed]'),function(b){b.onclick=function(){loadEdit(+b.dataset.ed);};});
+  Array.prototype.forEach.call($('fRes').querySelectorAll('[data-del]'),function(b){b.onclick=function(){
+    var i=+b.dataset.del;confirmBox('Xóa câu hỏi này khỏi bản nháp?<br><br><i>'+esc(WORK.q[i][1].slice(0,160))+'</i>').then(function(ok){if(!ok)return;WORK.q.splice(i,1);if(EDIT===i)clearForm(true);else if(EDIT>i)EDIT--;afterChange();});};});
+}
+function norm(s){return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d');}
+function loadEdit(i){var q=WORK.q[i];EDIT=i;$('eTitle').textContent='Sửa câu hỏi';$('eSave').textContent='Lưu thay đổi vào bản nháp';
+  $('eTopic').value=WORK.t[q[0]];$('eQ').value=q[1];renderOpts(q[2].slice(),q[3]);$('eEx').value=q[4]||'';$('eTrap').value=q[5]||'';$('eTip').value=q[6]||'';
+  st('sE','info','Đang sửa câu hỏi. Sửa xong bấm "Lưu thay đổi vào bản nháp", hoặc "Làm mới biểu mẫu" để hủy.');$('eTitle').scrollIntoView({behavior:'smooth'});}
+$('fSearch').oninput=searchQ;$('fTopic').onchange=searchQ;
+renderOpts();
 
 /* ================= CHỦ ĐỀ ================= */
 $('bAllOn').onclick=function(){WORK.hidden=[];renderTopics();renderSummary();refresh();};
@@ -593,7 +713,7 @@ function restore(sha,ds){
     });
   }).then(function(d){
     WORK.t=d.t;WORK.q=d.q;WORK.hidden=d.hidden||[];WORK.codes=d.codes||{};
-    $('codes').value=codesText(WORK.codes);renderSummary();renderTopics();syncCodes();
+    $('codes').value=codesText(WORK.codes);renderSummary();renderTopics();syncCodes();fillTopicLists();searchQ();
     $('hist').insertAdjacentHTML('afterbegin','<div class="status ok" style="margin-bottom:10px">✓ Đã nạp bản ngày '+esc(ds)+' vào bản nháp (câu hỏi, chủ đề ẩn, mã cán bộ). Bấm <b>Đăng lên</b> ở mục 4 để khôi phục. Mật khẩu sẽ là mật khẩu hiện tại (trừ khi anh/chị đặt mật khẩu mới).</div>');
   }).catch(function(e){if(e&&e.cancel)return;alertBox(e.status?ghErr(e):(e.message||'Lỗi'));});
 }
