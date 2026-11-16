@@ -15,6 +15,13 @@ h1{font-size:22px;margin:4px 0 2px}
 .sub{color:var(--mute);margin:0 0 16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
 .card h2{font-size:17px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.card h2.tg{cursor:pointer;user-select:none;margin:0}
+.card h2.tg+.cb{margin-top:4px}
+.card h2 .cs{margin-left:auto;font-size:13px;font-weight:600;color:var(--ok);text-align:right;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card h2 .cs.no{color:var(--bad)}
+.card h2 .cv{flex:none;color:var(--mute);font-size:16px;transition:transform .2s;margin-left:6px}
+.card h2 .cs:empty+.cv{margin-left:auto}
+.card.col .cb{display:none}.card.col h2 .cv{transform:rotate(-90deg)}
 .card h2 .n{width:26px;height:26px;border-radius:50%;background:var(--pri);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:none}
 .card .hint{color:var(--mute);font-size:13.5px;margin:0 0 12px}
 .lock{opacity:.45;pointer-events:none}
@@ -102,8 +109,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
   <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.1 · 16/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
-    <h2><span class="n">1</span>Kết nối GitHub</h2>
-    <p class="hint">Dán "chìa khóa GitHub" (token) có quyền ghi vào kho. Chìa khóa chỉ lưu trên máy này nếu chọn ghi nhớ – chỉ ghi nhớ trên máy tính riêng.</p>
+    <h2 class="tg" data-c="c1"><span class="n">1</span>Kết nối GitHub<span class="cs" id="cs1"></span><span class="cv">▾</span></h2>
+    <div class="cb">
+    <p class="hint">Dán "chìa khóa GitHub" (token) có quyền ghi vào kho. Chìa khóa được lưu trên máy này – chỉ dùng trên máy tính riêng.</p>
     <div class="row">
       <div><label class="f">Tài khoản GitHub</label><input type="text" id="owner"></div>
       <div><label class="f">Tên kho</label><input type="text" id="repo"></div>
@@ -113,14 +121,17 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     <label class="chk" style="display:none"><input type="checkbox" id="remember" checked> Ghi nhớ trên máy này</label><p class="hint" style="margin:6px 0 0">Chìa khóa và mật khẩu chỉ cần nhập 1 lần – máy này sẽ tự nhớ và tự kết nối ở các lần sau.</p>
     <div class="row" style="margin-top:12px"><button class="btn pri" id="bConnect" style="flex:none">Kết nối</button><button class="btn sm danger" id="bForget" style="flex:none">Đăng xuất trên máy này</button></div>
     <div id="s1"></div>
+    </div>
   </div>
 
   <div class="card lock" id="c2">
-    <h2><span class="n">2</span>Mở dữ liệu hiện tại</h2>
+    <h2 class="tg" data-c="c2"><span class="n">2</span>Mở dữ liệu hiện tại<span class="cs" id="cs2"></span><span class="cv">▾</span></h2>
+    <div class="cb">
     <p class="hint">Nhập mật khẩu app đang dùng để mở bộ câu hỏi hiện có.</p>
     <div class="row"><div><input type="password" id="curPw" placeholder="Mật khẩu hiện tại"></div><button class="btn pri" id="bOpen" style="flex:none">Mở</button></div>
     <div id="s2"></div>
     <div id="sum"></div>
+    </div>
   </div>
 
   <div class="card lock" id="c3">
@@ -452,6 +463,7 @@ function syncCodes(){var p=parseCodes($('codes').value);WORK.codes=p.codes;var n
   if($('needCode').checked)st('sC','info',n?'Chỉ '+fmt(n)+' mã trong danh sách mới mở được app.':'Danh sách đang trống: người dùng phải nhập mã cán bộ, nhưng <b>mã nào cũng vào được</b>.');else st('sC');
   refresh();}
 function renderSummary(){
+  if(WORK&&$('cs2').textContent.indexOf('✓')===0)setStat(2,'✓ '+fmt(WORK.q.length)+' câu · '+WORK.t.length+' chủ đề');
   var hidden=(WORK.hidden||[]).length,codes=Object.keys(WORK.codes||{}).length;
   $('sum').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(WORK.q.length)+'</b><span>câu hỏi</span></div><div class="stat"><b>'+fmt(WORK.t.length)+'</b><span>chủ đề'+(hidden?' ('+hidden+' ẩn)':'')+'</span></div><div class="stat"><b>'+fmt(codes)+'</b><span>mã cán bộ</span></div><div class="stat"><b>'+esc((WORK.meta&&WORK.meta.updated)||'–')+'</b><span>cập nhật lần cuối'+(WORK.meta&&WORK.meta.name?'<br>'+esc(WORK.meta.name):'')+'</span></div></div>';
 }
@@ -589,6 +601,9 @@ function confirmBox(msg){return new Promise(function(res){
 
 /* ================= BƯỚC 1: KẾT NỐI ================= */
 var AUTO=false,PWK=AK+'-pw';
+function setCol(id,c){$(id).classList.toggle('col',!!c);}
+function setStat(n,html,bad){var e=$('cs'+n);e.innerHTML=html||'';e.classList.toggle('no',!!bad);}
+Array.prototype.forEach.call(document.querySelectorAll('h2.tg'),function(h){h.onclick=function(){var c=$(h.dataset.c);c.classList.toggle('col');};});
 function savedPw(){try{return localStorage.getItem(PWK)||'';}catch(e){return '';}}
 function savePw(p){try{if(p)localStorage.setItem(PWK,p);else localStorage.removeItem(PWK);}catch(e){}}
 (function init(){
@@ -596,9 +611,9 @@ function savePw(p){try{if(p)localStorage.setItem(PWK,p);else localStorage.remove
   var o=/\.github\.io$/.test(host)?host.split('.')[0]:'',r=o&&seg.length&&seg[0]!=='admin.html'?seg[0]:'';
   var saved=null;try{saved=JSON.parse(localStorage.getItem(AK)||'null');}catch(e){}
   $('owner').value=(saved&&saved.owner)||o||'namnguyenueh';$('repo').value=(saved&&saved.repo)||r||'ontap';
-  if(saved&&saved.token){$('token').value=saved.token;AUTO=true;setTimeout(function(){$('bConnect').click();},50);}
+  if(saved&&saved.token){$('token').value=saved.token;AUTO=true;setCol('c1',1);setCol('c2',1);setStat(1,'Đang kết nối…');setTimeout(function(){$('bConnect').click();},50);}
 })();
-$('bForget').onclick=function(){try{localStorage.removeItem(AK);}catch(e){}savePw('');$('token').value='';$('curPw').value='';st('s1','info','Đã xóa chìa khóa và mật khẩu khỏi máy này. Lần sau cần nhập lại.');};
+$('bForget').onclick=function(){setStat(1,'');setStat(2,'');try{localStorage.removeItem(AK);}catch(e){}savePw('');$('token').value='';$('curPw').value='';st('s1','info','Đã xóa chìa khóa và mật khẩu khỏi máy này. Lần sau cần nhập lại.');};
 $('bConnect').onclick=function(){
   GH.owner=$('owner').value.trim();GH.repo=$('repo').value.trim();GH.token=$('token').value.trim();
   if(!GH.owner||!GH.repo||!GH.token){st('s1','no','Điền đủ tài khoản, tên kho và chìa khóa.');return;}
@@ -606,10 +621,10 @@ $('bConnect').onclick=function(){
   api('').then(function(j){
     if(j.permissions&&j.permissions.push===false)throw {status:403};
     try{localStorage.setItem(AK,JSON.stringify({owner:GH.owner,repo:GH.repo,token:GH.token}));}catch(e){}
-    st('s1','ok','✓ Đã kết nối kho <b>'+esc(j.full_name)+'</b>.');
+    st('s1','ok','✓ Đã kết nối kho <b>'+esc(j.full_name)+'</b>.');setStat(1,'✓ '+esc(j.full_name));setCol('c1',1);
     $('c2').classList.remove('lock');
-    var sp=savedPw();if(sp&&!WORK){$('curPw').value=sp;AUTO=true;$('bOpen').click();}else $('curPw').focus();
-  }).catch(function(e){AUTO=false;st('s1','no',ghErr(e)+(e&&e.status===401?' Chìa khóa có thể đã hết hạn – hãy tạo chìa khóa mới và dán vào đây.':''));});
+    var sp=savedPw();if(sp&&!WORK){$('curPw').value=sp;AUTO=true;setStat(2,'Đang mở…');$('bOpen').click();}else{setCol('c2',0);$('curPw').focus();}
+  }).catch(function(e){AUTO=false;setStat(1,'Chưa kết nối',1);setCol('c1',0);st('s1','no',ghErr(e)+(e&&e.status===401?' Chìa khóa có thể đã hết hạn – hãy tạo chìa khóa mới và dán vào đây.':''));});
 };
 
 /* ================= BƯỚC 2: MỞ DỮ LIỆU ================= */
@@ -624,7 +639,8 @@ $('bOpen').onclick=function(){
     d.hidden=d.hidden||[];d.codes=d.codes||{};d.meta=d.meta||{};
     CUR=JSON.parse(JSON.stringify(d));WORK=d;CURPW=pw;
     savePw(pw);st('s2','ok','✓ Đã mở bộ câu hỏi hiện tại'+(AUTO?' (tự động)':'')+'.');AUTO=false;loadIntoUI();
-  }).catch(function(e){if(AUTO&&!e.status){savePw('');$('curPw').value='';}AUTO=false;st('s2','no',e.status?ghErr(e):esc(e.message)+(e.message==='Sai mật khẩu.'?' Có thể mật khẩu đã được đổi – hãy nhập mật khẩu mới.':''));});
+    setStat(2,'✓ '+fmt(WORK.q.length)+' câu · '+WORK.t.length+' chủ đề');setCol('c2',1);
+  }).catch(function(e){if(AUTO&&!e.status){savePw('');$('curPw').value='';}AUTO=false;setStat(2,'Chưa mở',1);setCol('c2',0);st('s2','no',e.status?ghErr(e):esc(e.message)+(e.message==='Sai mật khẩu.'?' Có thể mật khẩu đã được đổi – hãy nhập mật khẩu mới.':''));});
 };
 $('curPw').onkeydown=function(e){if(e.key==='Enter')$('bOpen').click();};
 
