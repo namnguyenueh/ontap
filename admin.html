@@ -239,8 +239,9 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
           <button class="btn sm" data-gq="clr">Xóa giờ</button>
         </div>
       </div>
-      <p class="hint" style="margin-top:10px">Khi app đóng, người học chỉ thấy dòng: <b>Vui lòng liên hệ NAMNT4.</b></p>
-      <textarea id="gMsg" style="display:none"></textarea>
+      <label class="f">Nội dung người học thấy khi app đóng</label>
+      <textarea id="gMsg" rows="2" placeholder="Vui lòng liên hệ NAMNT4."></textarea>
+      <p class="hint" style="margin-top:4px">Để trống thì hiện mặc định: <b>Vui lòng liên hệ NAMNT4.</b> Màn hình đóng chỉ hiện đúng nội dung này.</p>
       <div class="row" style="margin-top:12px"><button class="btn pri" id="gSave" style="flex:none">Lưu &amp; áp dụng ngay</button></div>
       <div id="sG"></div>
     </div>
@@ -852,7 +853,7 @@ function gEval(g){g=g||{};var n=sNow();
   return {cls:'on',t:'Đang MỞ cho người học'};}
 function gRead(){var m=(document.querySelector('input[name=gmode]:checked')||{}).value||'open';
   var g={mode:m};if(m==='schedule'){g.from=fromLocalInput($('gFrom').value);g.to=fromLocalInput($('gTo').value);}
-  var msg=$('gMsg').value.trim();if(msg)g.msg=msg.slice(0,300);return g;}
+  var msg=$('gMsg').value.trim();if(msg)g.msg=msg.slice(0,500);return g;}
 function gRender(){var g=CFG.gate||{mode:'open'},e=gEval(g);
   $('gNow').className='gnow '+e.cls;$('gNow').innerHTML='<i></i><div>Hiện tại: '+e.t+(e.s?'<small>'+esc(e.s)+'</small>':'')+'</div>';}
 function gLoad(){var g=CFG.gate||{mode:'open'};

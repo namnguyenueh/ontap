@@ -1059,7 +1059,7 @@ function vnTime(ms){var d=new Date(ms+7*3600000);function p(x){return (x<10?'0':
 function gTakeDate(r){try{var dh=r.headers.get('date');if(dh){var v=Date.parse(dh);if(!isNaN(v))TOFF=v-Date.now();}}catch(e){}}
 function closedScreen(s){
   gClosed=true;var b=document.getElementById('bar');if(b)b.innerHTML='';
-  app.innerHTML='<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px">Vui lòng liên hệ NAMNT4.</div>';
+  app.innerHTML='<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;white-space:pre-line">'+esc(GATE.msg||'Vui lòng liên hệ NAMNT4.')+'</div>';
 }
 function gCheck(){
   fetch(SRC+'config.js?t='+Date.now(),{cache:'no-store'}).then(function(r){gTakeDate(r);return r.ok?r.text():'';}).then(function(tx){
