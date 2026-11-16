@@ -1016,7 +1016,7 @@ function form(msg){
   var sc=get(CK)||'';
   document.getElementById('bar').innerHTML='';
   app.innerHTML='<div class="login"><div class="lc"><img src="icon.png" alt="" width="64" height="64" style="border-radius:16px"><h1 style="font-size:21px;margin:12px 0 4px">'+esc(TEN+' '+NAM)+'</h1><p class="mute" style="margin:0 0 22px">Học thông minh – nhớ lâu, biết mình cần ôn gì<span class="rl"></span></p>'+
-  '<form id="pf">'+(NEED?'<input type="text" id="ma" placeholder="User AD cán bộ" autocapitalize="characters" autocomplete="username" value="'+esc(sc)+'" style="text-align:center;margin-bottom:10px">':'')+
+  (function(){var s=gState(GATE);return s.open&&s.until?'<p style="margin:-8px 0 14px;font-size:13.5px;color:#ffe08a"><b>App mở đến '+vnTime(s.until)+'</b></p>':'';})()+'<form id="pf">'+(NEED?'<input type="text" id="ma" placeholder="User AD cán bộ" autocapitalize="characters" autocomplete="username" value="'+esc(sc)+'" style="text-align:center;margin-bottom:10px">':'')+
   '<input type="password" id="pw" placeholder="Mật khẩu (mặc định: Vietinbank)" autocomplete="current-password" style="text-align:center;margin-bottom:10px">'+
   '<label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:14px;color:var(--mute);margin-bottom:14px"><input type="checkbox" id="rm" checked> Ghi nhớ trên máy này</label>'+
   '<button class="btn pri big" id="pb">Vào học</button></form><p id="pm" style="color:var(--bad);min-height:24px;margin-top:12px">'+(msg||'')+'</p>'+
@@ -1046,8 +1046,36 @@ function boot(){
     });
   } else form();
 }
+
+/* ================= MỞ / ĐÓNG APP (do quản trị cài trong config.js) ================= */
+var GATE=window.TRANG_THAI||{mode:'open'},TOFF=0,gTimer=null,gClosed=false;
+function gNow(){return Date.now()+TOFF;}
+function gParse(s){var v=Date.parse(s||'');return isNaN(v)?null:v;}
+function gState(g){g=g||{};var n=gNow();
+  if(g.mode==='closed')return {open:false};
+  if(g.mode==='schedule'){var f=gParse(g.from),to=gParse(g.to);if(f&&n<f)return {open:false,next:f};if(to&&n>=to)return {open:false,ended:to};return {open:true,until:to};}
+  return {open:true};}
+function vnTime(ms){var d=new Date(ms+7*3600000);function p(x){return (x<10?'0':'')+x;}return p(d.getUTCHours())+':'+p(d.getUTCMinutes())+' ngày '+p(d.getUTCDate())+'/'+p(d.getUTCMonth()+1)+'/'+d.getUTCFullYear();}
+function gTakeDate(r){try{var dh=r.headers.get('date');if(dh){var v=Date.parse(dh);if(!isNaN(v))TOFF=v-Date.now();}}catch(e){}}
+function closedScreen(s){
+  gClosed=true;var b=document.getElementById('bar');if(b)b.innerHTML='';
+  var line=s.next?'App sẽ mở lúc <b>'+vnTime(s.next)+'</b>.':(s.ended?'Đợt ôn tập đã kết thúc lúc <b>'+vnTime(s.ended)+'</b>.':(GATE.msg?'':'Vui lòng quay lại sau.'));
+  app.innerHTML='<div class="login"><div class="lc"><img src="icon.png" alt="" width="64" height="64" style="border-radius:16px"><h1 style="font-size:21px;margin:12px 0 4px">'+esc(TEN+' '+NAM)+'</h1>'+
+    '<p class="mute" style="margin:0 0 22px">Học thông minh – nhớ lâu, biết mình cần ôn gì<span class="rl"></span></p>'+
+    '<div style="background:var(--card);color:var(--ink);border-radius:22px;padding:24px 18px;box-shadow:0 14px 40px rgba(0,20,60,.3)">'+
+    '<div style="font-size:40px;line-height:1">🔒</div><h2 style="margin:10px 0 6px;font-size:19px">App đang tạm đóng</h2><p style="margin:0 0 6px">'+line+'</p>'+
+    (GATE.msg?'<p class="mute" style="margin:8px 0 0;white-space:pre-line">'+esc(GATE.msg)+'</p>':'')+
+    '<button class="btn pri big" style="margin-top:18px" onclick="location.reload()">Kiểm tra lại</button></div>'+
+    '<p class="ft" style="font-size:12.5px;margin-top:18px">Tiến độ học của bạn vẫn được giữ trên máy này.<br><b>'+esc(APP_AUTHOR)+'</b></p></div></div>';
+}
+function gCheck(){
+  fetch(SRC+'config.js?t='+Date.now(),{cache:'no-store'}).then(function(r){gTakeDate(r);return r.ok?r.text():'';}).then(function(tx){
+    var m=/TRANG_THAI\s*=\s*(\{[^\n]*\})\s*;/.exec(tx||'');if(m){try{GATE=JSON.parse(m[1]);}catch(e){}}else if(tx)GATE={mode:'open'};
+  }).catch(function(){}).then(function(){var s=gState(GATE);if(!s.open&&!gClosed)closedScreen(s);else if(s.open&&gClosed)location.reload();});
+}
+function gStart(){if(gTimer)return;gTimer=setInterval(gCheck,60000);document.addEventListener('visibilitychange',function(){if(!document.hidden)gCheck();});}
 app.innerHTML='<div class="empty" style="margin-top:30vh">Đang tải…</div>';
-fetch(SRC+'data.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){if(!j||!j.c||!j.s||!j.i)throw 0;ENC=j;boot();})
+fetch(SRC+'data.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw 0;gTakeDate(r);return r.json();}).then(function(j){if(!j||!j.c||!j.s||!j.i)throw 0;ENC=j;gStart();var s=gState(GATE);if(!s.open){closedScreen(s);return;}boot();})
 .catch(function(){app.innerHTML='<div class="empty" style="margin-top:25vh">Không tải được bộ câu hỏi.<br>Kiểm tra kết nối mạng rồi mở lại.<br><br><button class="btn pri" onclick="location.reload()">Thử lại</button></div>';});
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').catch(function(){});}
 })();
