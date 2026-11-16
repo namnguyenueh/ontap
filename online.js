@@ -62,6 +62,7 @@ window.FIREBASE_CONFIG = {
       me=db.ref('presence/'+sid);
       db.ref('.info/serverTimeOffset').on('value',function(s){offset=s.val()||0;});
       db.ref('.info/connected').on('value',function(s){connected=!!s.val();announce();});
+      if(uKey&&!uTimer)uTimer=setTimeout(uSend,800);
       db.ref('presence').on('value',function(s){data=s.val()||{};ready=true;render();},function(){ready=false;render();});
       beat=setInterval(function(){if(visible)announce();render();},2*60*1000);
       document.addEventListener('visibilitychange',function(){visible=!document.hidden;announce();});
@@ -70,6 +71,23 @@ window.FIREBASE_CONFIG = {
       if(appEl&&window.MutationObserver)new MutationObserver(render).observe(appEl,{childList:true,subtree:true});
     }catch(e){}
   }
+
+  /* Ghi nhận người học (mã cán bộ + số liệu tổng hợp, không có nội dung câu hỏi) */
+  var uKey='',uGet=null,uTimer=null,uFirst=false;
+  function uSend(){
+    uTimer=null;if(!db||!uKey||!uGet)return;
+    try{
+      var s=uGet();if(!s)return;
+      s.l=firebase.database.ServerValue.TIMESTAMP;
+      var ref=db.ref('users/'+uKey);ref.update(s);
+      if(!uFirst){uFirst=true;ref.child('f').transaction(function(v){return v||(Date.now()+offset);});}
+    }catch(e){}
+  }
+  api.user=function(code,getter){
+    uKey=String(code||'').trim().toUpperCase().replace(/[.#$\[\]\/\s]/g,'_').slice(0,40);uGet=getter;
+    if(!uTimer)uTimer=setTimeout(uSend,db?500:6000);
+  };
+  api.report=function(){if(uKey&&!uTimer)uTimer=setTimeout(uSend,4000);};
   api.start=function(){
     if(started)return;started=true;
     load(SDK+'firebase-app-compat.js').then(function(){return load(SDK+'firebase-database-compat.js');}).then(begin).catch(function(){});

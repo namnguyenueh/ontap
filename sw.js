@@ -1,5 +1,5 @@
 // Bản lưu để dùng khi mất mạng. Luôn lấy bản mới nhất khi có mạng.
-var C='ontap-qh-v6',F=['./','./index.html','./data.json','./config.js','./manifest.json','./icon.png','./online.js'];
+var C='ontap-qh-v7',F=['./','./index.html','./data.json','./config.js','./manifest.json','./icon.png','./online.js'];
 self.addEventListener('install',function(e){self.skipWaiting();e.waitUntil(caches.open(C).then(function(c){return c.addAll(F);}).catch(function(){}));});
 self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(k){return Promise.all(k.filter(function(x){return x!==C;}).map(function(x){return caches.delete(x);}));}).then(function(){return self.clients.claim();}));});
 self.addEventListener('fetch',function(e){

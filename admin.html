@@ -42,6 +42,13 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
 .tab{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font:inherit;font-weight:600;cursor:pointer}
 .tab.on{background:var(--pri);border-color:var(--pri);color:#fff}
 .pane{display:none}.pane.on{display:block}
+.ucard{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--card)}
+.ucard .uc{flex:1;min-width:0}.ucard .un{font-weight:700}.ucard .um{font-size:12.5px;color:var(--mute)}
+.ucard .ur{text-align:right;font-size:13px;flex:none}.ucard .ur b{display:block;font-size:16px}
+.udot{width:10px;height:10px;border-radius:50%;background:#c3cbd4;flex:none}.udot.on{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.2)}
+.usum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.usum div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center}
+.usum b{display:block;font-size:20px}.usum span{font-size:12px;color:var(--mute)}
+
 .rep{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:10px}
 .rep div{padding:7px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
 .rep .e{color:var(--bad)}.rep .w{color:var(--warn)}
@@ -115,6 +122,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <button class="tab" data-p="pC">Mã cán bộ</button>
       <button class="tab" data-p="pS">Mật khẩu &amp; cài đặt</button>
       <button class="tab" data-p="pH">Lịch sử</button>
+      <button class="tab" data-p="pU">Người học</button>
     </div>
 
     <div class="pane on" id="pQ">
@@ -180,6 +188,13 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <p class="hint">Các lần đăng gần nhất. Bấm <b>Mở bản này</b> để nạp lại một bản cũ, kiểm tra, rồi bấm <b>Đăng lên</b> để khôi phục.</p>
       <button class="btn sm" id="bHist">Tải lịch sử</button>
       <div id="hist" style="margin-top:10px"></div>
+    </div>
+    <div class="pane" id="pU">
+      <p class="hint">Danh sách cán bộ đã đăng nhập app và kết quả học (cập nhật vài giây sau mỗi câu trả lời). "Đang học" = có hoạt động trong 5 phút gần nhất.</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn sm" id="bUsers">Tải danh sách</button>
+        <select id="uSort" style="max-width:220px"><option value="l">Mới hoạt động trước</option><option value="a">Học nhiều câu nhất</option><option value="r">Tỷ lệ đúng cao nhất</option><option value="m">Theo mã cán bộ</option></select>
+        <button class="btn sm" id="bUExp" style="display:none">⬇ Xuất Excel</button></div>
+      <div id="sU"></div><div id="uSum" style="margin-top:10px"></div><div id="uList" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -558,6 +573,7 @@ Array.prototype.forEach.call(document.querySelectorAll('.tab'),function(b){b.onc
   Array.prototype.forEach.call(document.querySelectorAll('.pane'),function(p){p.classList.toggle('on',p.id===b.dataset.p);});
   if(b.dataset.p==='pH'&&!$('hist').innerHTML)$('bHist').click();
   if(b.dataset.p==='pE')searchQ();
+  if(b.dataset.p==='pU'&&!USERS)$('bUsers').click();
 };});
 
 /* ================= CÂU HỎI ================= */
@@ -674,6 +690,38 @@ function loadEdit(i){var q=WORK.q[i];EDIT=i;$('eTitle').textContent='Sửa câu 
 $('fSearch').oninput=searchQ;$('fTopic').onchange=searchQ;
 renderOpts();
 
+
+/* ================= NGƯỜI HỌC ================= */
+var FB_DB='https://ontap-online-default-rtdb.asia-southeast1.firebasedatabase.app',USERS=null;
+function ago(ms){var s=Math.max(0,Math.round(ms/1000));if(s<60)return 'vừa xong';var m=Math.round(s/60);if(m<60)return m+' phút trước';var h=Math.round(m/60);if(h<24)return h+' giờ trước';var d=Math.round(h/24);return d+' ngày trước';}
+function dt(ms){if(!ms)return '–';var d=new Date(ms);function p(n){return (n<10?'0':'')+n;}return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
+function pct(k,q){return q?(Math.round(k/q*1000)/10).toString().replace('.',',')+'%':'–';}
+function uName(code,u){var c=(WORK&&WORK.codes)||{};return u.n||c[code]||'';}
+function renderUsers(){
+  if(!USERS)return;var now=Date.now(),T0=new Date();T0.setHours(0,0,0,0);
+  var arr=Object.keys(USERS).map(function(k){var u=USERS[k]||{};return {m:k,u:u};}).filter(function(x){return x.u.l;});
+  var srt=$('uSort').value;
+  arr.sort(function(a,b){if(srt==='a')return (b.u.a||0)-(a.u.a||0);if(srt==='r')return ((b.u.q?b.u.k/b.u.q:-1)-(a.u.q?a.u.k/a.u.q:-1));if(srt==='m')return a.m<b.m?-1:1;return b.u.l-a.u.l;});
+  var on=arr.filter(function(x){return now-x.u.l<5*60*1000;}).length,today=arr.filter(function(x){return x.u.l>=T0.getTime();}).length;
+  var tq=arr.reduce(function(s,x){return s+(x.u.q||0);},0);
+  $('uSum').innerHTML='<div class="usum"><div><b>'+fmt(arr.length)+'</b><span>Đã đăng nhập</span></div><div><b style="color:#16a34a">'+fmt(on)+'</b><span>Đang học</span></div><div><b>'+fmt(today)+'</b><span>Học hôm nay</span></div><div><b>'+fmt(tq)+'</b><span>Lượt trả lời</span></div></div>';
+  $('uList').innerHTML=arr.length?arr.map(function(x){var u=x.u,nm=uName(x.m,u),live=now-u.l<5*60*1000;
+    return '<div class="ucard"><i class="udot'+(live?' on':'')+'"></i><div class="uc"><div class="un">'+esc(x.m)+(nm?' · '+esc(nm):'')+'</div><div class="um">'+(live?'<b style="color:#16a34a">Đang học</b>':'Hoạt động '+ago(now-u.l))+' · '+fmt(u.d||0)+' ngày học · lần đầu '+dt(u.f)+'</div></div>'+
+      '<div class="ur"><b>'+fmt(u.a||0)+'<small style="font-weight:500;color:var(--mute)">/'+fmt(u.t||(WORK?WORK.q.length:0))+'</small></b>câu · đúng '+pct(u.k||0,u.q||0)+'</div></div>';}).join(''):'<div class="hint">Chưa có ai đăng nhập kể từ khi bật tính năng này.</div>';
+  $('bUExp').style.display=arr.length?'inline-flex':'none';
+}
+$('bUsers').onclick=function(){
+  st('sU','info','Đang tải…');
+  fetch(FB_DB+'/users.json?t='+Date.now()).then(function(r){if(!r.ok)throw new Error(r.status===401?'Chưa mở quyền đọc danh sách người học trên Firebase.':'Lỗi '+r.status);return r.json();})
+  .then(function(d){USERS=d||{};st('sU');renderUsers();})
+  .catch(function(e){st('sU','no',esc(e.message||'Không tải được.'));});
+};
+$('uSort').onchange=renderUsers;
+$('bUExp').onclick=function(){
+  if(!USERS)return;var rows=[['Mã cán bộ','Họ tên','Lần đầu đăng nhập','Hoạt động gần nhất','Số câu đã học','Tổng câu','Lượt trả lời','Trả lời đúng','Tỷ lệ đúng (%)','Số ngày học']];
+  Object.keys(USERS).sort().forEach(function(k){var u=USERS[k]||{};if(!u.l)return;rows.push([k,uName(k,u),dt(u.f),dt(u.l),u.a||0,u.t||0,u.q||0,u.k||0,u.q?Math.round(u.k/u.q*1000)/10:'',u.d||0]);});
+  download(writeXlsx('Nguoi hoc',rows,[14,26,18,18,12,10,12,12,13,11]),'nguoi-hoc-'+today().replace(/\//g,'-')+'.xlsx');
+};
 /* ================= CHỦ ĐỀ ================= */
 $('bAllOn').onclick=function(){WORK.hidden=[];renderTopics();renderSummary();refresh();};
 
