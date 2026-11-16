@@ -308,6 +308,25 @@ input:focus{outline:none;border-color:var(--pri)!important;box-shadow:0 0 0 4px 
 .login .ft,.login .ft b{color:rgba(255,255,255,.85)!important}
 .login #pm{color:#ffd2cf!important;font-weight:600}
 .login .rl{display:block;height:4px;width:56px;background:var(--red);border-radius:2px;margin:10px auto 0}
+
+.tp-h{font-size:20px;margin:2px 0 12px;line-height:1.35;color:var(--pri-d)}
+@media (prefers-color-scheme:dark){.tp-h{color:var(--ink)}}
+.tp-card{background:var(--card);border-radius:18px;box-shadow:var(--sh);padding:16px}
+.tp-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px}
+.tp-top b{font-size:26px;line-height:1;color:var(--pri-d)}.tp-top small{font-size:14px;color:var(--mute);margin-left:4px}
+@media (prefers-color-scheme:dark){.tp-top b{color:var(--ink)}}
+.tp-pc{font-weight:800;color:var(--pri);font-size:16px}
+.tp-3{display:flex;margin-top:14px;border-top:1px solid var(--line2);padding-top:12px}
+.tp-3 div{flex:1;text-align:center}.tp-3 div+div{border-left:1px solid var(--line2)}
+.tp-3 b{display:block;font-size:19px}.tp-3 span{font-size:12.5px;color:var(--mute)}
+.tp-go{margin-top:16px;flex-direction:column;gap:2px;min-height:64px}
+.tp-go small{font-size:12.5px;font-weight:500;letter-spacing:0;opacity:.85}
+.tp-lb{margin:20px 2px 8px;font-size:13.5px;font-weight:700;color:var(--mute)}
+.tp-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tp-g button{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:12px 8px;text-align:center}
+.tp-g button:active{transform:scale(.98)}
+.tp-g b{display:block;font-size:22px;line-height:1.2}.tp-g span{font-size:13px;color:var(--mute);font-weight:600}
+.tp-ex{margin-top:14px;border:1.5px solid var(--pri)!important;color:var(--pri);background:transparent;box-shadow:none}
 </style>
 </head>
 <body>
@@ -689,13 +708,15 @@ function vTopic(){
   var ti=V.ti,T=dnum();if(ti==null||!TOPICS[ti]){go('topics');return;}
   var o=tinfo(ti,T);
   var h='<div class="qtop"><button class="ib" data-act="go" data-v="topics">'+ICON.back+'</button><div class="pg"><span>Chủ đề</span></div></div>';
-  h+='<h1 style="font-size:20px;margin:0 0 6px;line-height:1.35">'+esc(TOPICS[ti])+'</h1><div style="margin-bottom:14px">'+lvChip(o)+(o.acc!=null?' <span class="mute small">tỷ lệ đúng gần đây '+pc(o.acc)+'</span>':'')+'</div>';
-  h+='<div class="kpi"><div><b>'+o.n+'</b><span>Tổng câu</span></div><div><b>'+o.att+'</b><span>Đã học</span></div><div><b>'+pc(o.a?o.c/o.a:null)+'</b><span>Tỷ lệ đúng</span></div>'+
-    '<div><b style="color:var(--warn)">'+(o.unsure+o.wrong)+'</b><span>Chưa nắm vững</span></div><div><b style="color:var(--ok)">'+o.master+'</b><span>Thành thạo</span></div><div><b style="color:var(--pri)">'+(o.due+o.wrong)+'</b><span>Cần ôn</span></div></div>';
-  h+='<div class="box" style="margin-top:12px;padding:12px 14px">'+segBar(o)+'<div class="legend">'+SORDER.filter(function(k){return o[k];}).map(function(k){return '<span><i class="dot" style="background:'+SC[k][1]+'"></i>'+SC[k][0]+' '+o[k]+'</span>';}).join('')+'</div></div>';
-  var A=[['all','Học toàn bộ chủ đề','Câu sai và câu đến hạn được xếp lên trước',o.n],['new','Học câu chưa từng học','',o['new']],['wrong','Ôn câu đang sai','',o.wrong],['due','Ôn câu đến hạn','',o.due],['flag','Ôn câu đã đánh dấu','',o.flag]];
-  h+='<div class="sec"><h2>Bạn muốn học gì?</h2><div class="list">'+A.map(function(x){return '<button class="row" data-act="tlearn" data-v="'+x[0]+'"'+(x[3]?'':' disabled style="opacity:.45"')+'><div class="tx"><div class="nm">'+x[1]+'</div>'+(x[2]?'<div class="mt">'+x[2]+'</div>':'')+'</div><span class="chip">'+x[3]+' câu</span><span class="chev">›</span></button>';}).join('')+
-    '<button class="row" data-act="texam"><div class="tx"><div class="nm">Thi thử chủ đề này</div><div class="mt">'+Math.min(o.n,30)+' câu, không xem đáp án khi làm</div></div><span class="chev">›</span></button></div></div>';
+  var done=o.n?Math.round(o.att/o.n*100):0;
+  h+='<h1 class="tp-h">'+esc(TOPICS[ti])+'</h1>';
+  h+='<div class="tp-card"><div class="tp-top"><div><b>'+fmt(o.att)+'</b><small>/'+fmt(o.n)+' câu đã học</small></div><span class="tp-pc">'+done+'%</span></div>'+
+    '<div class="bar"><i style="width:'+done+'%"></i></div>'+
+    '<div class="tp-3"><div><b>'+pc(o.a?o.c/o.a:null)+'</b><span>Tỷ lệ đúng</span></div><div><b style="color:var(--red)">'+fmt(o.due+o.wrong)+'</b><span>Cần ôn</span></div><div><b style="color:var(--ok)">'+fmt(o.master)+'</b><span>Thành thạo</span></div></div></div>';
+  h+='<button class="btn pri big tp-go" data-act="tlearn" data-v="all">▶ HỌC CHỦ ĐỀ NÀY<small>'+fmt(o.n)+' câu · câu sai, đến hạn được ưu tiên</small></button>';
+  var A=[['new','Câu chưa học',o['new'],'var(--pri)'],['wrong','Câu đang sai',o.wrong,'var(--red)'],['due','Câu đến hạn ôn',o.due,'var(--warn)'],['flag','Câu đã đánh dấu',o.flag,'#f08a24']].filter(function(x){return x[2];});
+  if(A.length)h+='<div class="tp-lb">Hoặc học riêng</div><div class="tp-g">'+A.map(function(x){return '<button data-act="tlearn" data-v="'+x[0]+'"><b style="color:'+x[3]+'">'+fmt(x[2])+'</b><span>'+x[1]+'</span></button>';}).join('')+'</div>';
+  h+='<button class="btn w tp-ex" data-act="texam">📝 Thi thử chủ đề này · '+Math.min(o.n,30)+' câu</button>';
   app.innerHTML=h;nav('topics');
 }
 ACT.tlearn=function(v){
