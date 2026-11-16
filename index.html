@@ -1059,14 +1059,12 @@ function vnTime(ms){var d=new Date(ms+7*3600000);function p(x){return (x<10?'0':
 function gTakeDate(r){try{var dh=r.headers.get('date');if(dh){var v=Date.parse(dh);if(!isNaN(v))TOFF=v-Date.now();}}catch(e){}}
 function closedScreen(s){
   gClosed=true;var b=document.getElementById('bar');if(b)b.innerHTML='';
-  var line=s.next?'App sẽ mở lúc <b>'+vnTime(s.next)+'</b>.':(s.ended?'Đợt ôn tập đã kết thúc lúc <b>'+vnTime(s.ended)+'</b>.':(GATE.msg?'':'Vui lòng quay lại sau.'));
-  app.innerHTML='<div class="login"><div class="lc"><img src="icon.png" alt="" width="64" height="64" style="border-radius:16px"><h1 style="font-size:21px;margin:12px 0 4px">'+esc(TEN+' '+NAM)+'</h1>'+
-    '<p class="mute" style="margin:0 0 22px">Học thông minh – nhớ lâu, biết mình cần ôn gì<span class="rl"></span></p>'+
-    '<div style="background:var(--card);color:var(--ink);border-radius:22px;padding:24px 18px;box-shadow:0 14px 40px rgba(0,20,60,.3)">'+
-    '<div style="font-size:40px;line-height:1">🔒</div><h2 style="margin:10px 0 6px;font-size:19px">App đang tạm đóng</h2><p style="margin:0 0 6px">'+line+'</p>'+
-    (GATE.msg?'<p class="mute" style="margin:8px 0 0;white-space:pre-line">'+esc(GATE.msg)+'</p>':'')+
-    '<button class="btn pri big" style="margin-top:18px" onclick="location.reload()">Kiểm tra lại</button></div>'+
-    '<p class="ft" style="font-size:12.5px;margin-top:18px">Tiến độ học của bạn vẫn được giữ trên máy này.<br><b>'+esc(APP_AUTHOR)+'</b></p></div></div>';
+  var line=s.next?'App sẽ mở lúc '+vnTime(s.next)+'.':(s.ended?'Đợt ôn tập đã kết thúc lúc '+vnTime(s.ended)+'.':'');
+  app.innerHTML='<div style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;line-height:1.6">'+
+    (line?'<p style="margin:0 0 6px">'+line+'</p>':'')+
+    (GATE.msg?'<p style="margin:0 0 6px;white-space:pre-line">'+esc(GATE.msg)+'</p>':'')+
+    '<p style="margin:0 0 20px">Vui lòng liên hệ NAMNT4.</p>'+
+    '<a href="#" onclick="location.reload();return false" style="color:var(--pri);font-size:15px">Kiểm tra lại</a></div>';
 }
 function gCheck(){
   fetch(SRC+'config.js?t='+Date.now(),{cache:'no-store'}).then(function(r){gTakeDate(r);return r.ok?r.text():'';}).then(function(tx){
