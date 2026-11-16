@@ -59,6 +59,10 @@ textarea{min-height:150px;font-family:ui-monospace,Consolas,monospace;font-size:
 .ti .mv button{width:34px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--card,#fff);cursor:pointer;font-size:13px;color:var(--pri,#005b9a)}
 .ti .mv button:disabled{opacity:.3;cursor:default}
 .ti.moved{background:#fff7d6;transition:background .6s}
+.ti .dh{flex:none;width:28px;height:34px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--mute);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px}
+.ti .dh:hover{background:var(--line2,#eef1f5)}
+.ti.drag{position:fixed;z-index:50;background:var(--card,#fff);box-shadow:0 10px 30px rgba(0,30,80,.25);opacity:.96;pointer-events:none;cursor:grabbing}
+.ti.ph{border:2px dashed var(--pri,#005b9a);background:var(--pri2,#e4effa);padding:0}
 .ti{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;cursor:pointer;font-size:14px}
 .ti input{width:18px;height:18px;flex:none}
 .ti.off{opacity:.5;text-decoration:line-through}
@@ -164,7 +168,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
 
     <div class="pane" id="pT">
-      <p class="hint">Bấm <b>▲ ▼</b> để sắp xếp thứ tự chủ đề hiển thị trong app. Bỏ chọn để <b>ẩn</b> chủ đề khỏi app (câu hỏi vẫn được giữ lại, có thể hiện lại bất cứ lúc nào).</p>
+      <p class="hint">Giữ biểu tượng <b>⠿</b> rồi <b>kéo thả</b> để sắp xếp thứ tự chủ đề hiển thị trong app (hoặc bấm ▲ ▼ để dịch từng bước). Bỏ chọn để <b>ẩn</b> chủ đề khỏi app (câu hỏi vẫn được giữ lại, có thể hiện lại bất cứ lúc nào).</p>
       <div class="row" style="flex-wrap:nowrap"><button class="btn sm" id="bAllOn" style="flex:none">Hiện tất cả</button><span id="tCount" style="color:var(--mute);align-self:center"></span></div>
       <div class="tlist" id="tlist"></div>
     </div>
@@ -455,14 +459,48 @@ function renderTopics(){
   var cnt=WORK.t.map(function(){return 0;});WORK.q.forEach(function(q){cnt[q[0]]++;});
   var hid={};(WORK.hidden||[]).forEach(function(n){hid[n]=1;});
   var L=WORK.t.length;
-  $('tlist').innerHTML=WORK.t.map(function(n,i){return '<div class="ti'+(hid[n]?' off':'')+'"><b class="tn">'+(i+1)+'</b><label class="tl"><input type="checkbox" data-t="'+i+'"'+(hid[n]?'':' checked')+'><span>'+esc(n)+'</span></label><span class="c">'+cnt[i]+' câu</span>'+
+  $('tlist').innerHTML=WORK.t.map(function(n,i){return '<div class="ti'+(hid[n]?' off':'')+'" data-i="'+i+'"><span class="dh" title="Giữ và kéo để đổi vị trí">⠿</span><b class="tn">'+(i+1)+'</b><label class="tl"><input type="checkbox" data-t="'+i+'"'+(hid[n]?'':' checked')+'><span>'+esc(n)+'</span></label><span class="c">'+cnt[i]+' câu</span>'+
     '<span class="mv"><button data-mv="'+i+'" data-d="-1" title="Đưa lên"'+(i?'':' disabled')+'>▲</button><button data-mv="'+i+'" data-d="1" title="Đưa xuống"'+(i<L-1?'':' disabled')+'>▼</button></span></div>';}).join('');
   Array.prototype.forEach.call($('tlist').querySelectorAll('[data-mv]'),function(b){b.onclick=function(){moveTopic(+b.dataset.mv,+b.dataset.d);};});
+  Array.prototype.forEach.call($('tlist').querySelectorAll('.dh'),function(h){h.onpointerdown=dragStart;});
   $('tCount').textContent='Đang hiện '+(WORK.t.length-Object.keys(hid).length)+'/'+WORK.t.length+' chủ đề';
   Array.prototype.forEach.call($('tlist').querySelectorAll('input'),function(cb){cb.onchange=function(){
     var n=WORK.t[+cb.dataset.t],h=WORK.hidden||[];var k=h.indexOf(n);
     if(cb.checked&&k>=0)h.splice(k,1);if(!cb.checked&&k<0)h.push(n);WORK.hidden=h;
     cb.closest('.ti').classList.toggle('off',!cb.checked);$('tCount').textContent='Đang hiện '+(WORK.t.length-h.length)+'/'+WORK.t.length+' chủ đề';renderSummary();refresh();};});
+}
+function applyOrder(order,flash){
+  var same=order.every(function(o,k){return o===k;});if(same){renderTopics();return;}
+  var map={};order.forEach(function(o,k){map[o]=k;});
+  WORK.t=order.map(function(o){return WORK.t[o];});
+  WORK.q.forEach(function(q){q[0]=map[q[0]];});
+  renderTopics();renderSummary();if(typeof fillTopicLists==='function')fillTopicLists();refresh();
+  if(flash!=null){var el=$('tlist').querySelectorAll('.ti')[flash];if(el){el.classList.add('moved');setTimeout(function(){el.classList.remove('moved');},700);}}
+}
+var DRG=null;
+function dragStart(e){
+  if(e.button!=null&&e.button!==0)return;e.preventDefault();
+  var row=e.target.closest('.ti'),list=$('tlist'),r=row.getBoundingClientRect();
+  var ph=document.createElement('div');ph.className='ti ph';ph.style.height=r.height+'px';
+  list.insertBefore(ph,row.nextSibling);
+  row.classList.add('drag');row.style.width=r.width+'px';row.style.left=r.left+'px';row.style.top=r.top+'px';
+  DRG={row:row,ph:ph,dy:e.clientY-r.top,from:+row.dataset.i,list:list};
+  document.addEventListener('pointermove',dragMove,{passive:false});document.addEventListener('pointerup',dragEnd);document.addEventListener('pointercancel',dragEnd);
+}
+function dragMove(e){
+  if(!DRG)return;e.preventDefault();
+  DRG.row.style.top=(e.clientY-DRG.dy)+'px';
+  if(e.clientY<60)window.scrollBy(0,-12);else if(e.clientY>window.innerHeight-60)window.scrollBy(0,12);
+  var rows=Array.prototype.filter.call(DRG.list.children,function(x){return x!==DRG.row&&x!==DRG.ph;}),before=null;
+  for(var k=0;k<rows.length;k++){var b=rows[k].getBoundingClientRect();if(e.clientY<b.top+b.height/2){before=rows[k];break;}}
+  if(before)DRG.list.insertBefore(DRG.ph,before);else DRG.list.appendChild(DRG.ph);
+}
+function dragEnd(){
+  if(!DRG)return;var d=DRG;DRG=null;
+  document.removeEventListener('pointermove',dragMove);document.removeEventListener('pointerup',dragEnd);document.removeEventListener('pointercancel',dragEnd);
+  d.list.insertBefore(d.row,d.ph);d.ph.remove();d.row.classList.remove('drag');d.row.style.cssText='';
+  var order=Array.prototype.map.call(d.list.querySelectorAll('.ti'),function(x){return +x.dataset.i;});
+  applyOrder(order,order.indexOf(d.from));
 }
 function moveTopic(i,d){
   var j=i+d;if(j<0||j>=WORK.t.length)return;
