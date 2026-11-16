@@ -100,8 +100,8 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
     <label class="f">Chìa khóa GitHub (token)</label>
     <input type="password" id="token" placeholder="github_pat_..." autocomplete="off">
-    <label class="chk"><input type="checkbox" id="remember"> Ghi nhớ trên máy này</label>
-    <div class="row" style="margin-top:12px"><button class="btn pri" id="bConnect" style="flex:none">Kết nối</button><button class="btn sm danger" id="bForget" style="flex:none">Quên chìa khóa trên máy này</button></div>
+    <label class="chk" style="display:none"><input type="checkbox" id="remember" checked> Ghi nhớ trên máy này</label><p class="hint" style="margin:6px 0 0">Chìa khóa và mật khẩu chỉ cần nhập 1 lần – máy này sẽ tự nhớ và tự kết nối ở các lần sau.</p>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="bConnect" style="flex:none">Kết nối</button><button class="btn sm danger" id="bForget" style="flex:none">Đăng xuất trên máy này</button></div>
     <div id="s1"></div>
   </div>
 
@@ -531,24 +531,28 @@ function confirmBox(msg){return new Promise(function(res){
 });}
 
 /* ================= BƯỚC 1: KẾT NỐI ================= */
+var AUTO=false,PWK=AK+'-pw';
+function savedPw(){try{return localStorage.getItem(PWK)||'';}catch(e){return '';}}
+function savePw(p){try{if(p)localStorage.setItem(PWK,p);else localStorage.removeItem(PWK);}catch(e){}}
 (function init(){
   var host=location.hostname,seg=location.pathname.split('/').filter(Boolean);
   var o=/\.github\.io$/.test(host)?host.split('.')[0]:'',r=o&&seg.length&&seg[0]!=='admin.html'?seg[0]:'';
   var saved=null;try{saved=JSON.parse(localStorage.getItem(AK)||'null');}catch(e){}
   $('owner').value=(saved&&saved.owner)||o||'namnguyenueh';$('repo').value=(saved&&saved.repo)||r||'ontap';
-  if(saved&&saved.token){$('token').value=saved.token;$('remember').checked=true;}
+  if(saved&&saved.token){$('token').value=saved.token;AUTO=true;setTimeout(function(){$('bConnect').click();},50);}
 })();
-$('bForget').onclick=function(){try{localStorage.removeItem(AK);}catch(e){}$('token').value='';$('remember').checked=false;st('s1','info','Đã xóa chìa khóa khỏi máy này.');};
+$('bForget').onclick=function(){try{localStorage.removeItem(AK);}catch(e){}savePw('');$('token').value='';$('curPw').value='';st('s1','info','Đã xóa chìa khóa và mật khẩu khỏi máy này. Lần sau cần nhập lại.');};
 $('bConnect').onclick=function(){
   GH.owner=$('owner').value.trim();GH.repo=$('repo').value.trim();GH.token=$('token').value.trim();
   if(!GH.owner||!GH.repo||!GH.token){st('s1','no','Điền đủ tài khoản, tên kho và chìa khóa.');return;}
   st('s1','info','Đang kết nối…');
   api('').then(function(j){
     if(j.permissions&&j.permissions.push===false)throw {status:403};
-    try{if($('remember').checked)localStorage.setItem(AK,JSON.stringify({owner:GH.owner,repo:GH.repo,token:GH.token}));else localStorage.removeItem(AK);}catch(e){}
+    try{localStorage.setItem(AK,JSON.stringify({owner:GH.owner,repo:GH.repo,token:GH.token}));}catch(e){}
     st('s1','ok','✓ Đã kết nối kho <b>'+esc(j.full_name)+'</b>.');
-    $('c2').classList.remove('lock');$('curPw').focus();
-  }).catch(function(e){st('s1','no',ghErr(e));});
+    $('c2').classList.remove('lock');
+    var sp=savedPw();if(sp&&!WORK){$('curPw').value=sp;AUTO=true;$('bOpen').click();}else $('curPw').focus();
+  }).catch(function(e){AUTO=false;st('s1','no',ghErr(e)+(e&&e.status===401?' Chìa khóa có thể đã hết hạn – hãy tạo chìa khóa mới và dán vào đây.':''));});
 };
 
 /* ================= BƯỚC 2: MỞ DỮ LIỆU ================= */
@@ -562,8 +566,8 @@ $('bOpen').onclick=function(){
   }).then(function(d){
     d.hidden=d.hidden||[];d.codes=d.codes||{};d.meta=d.meta||{};
     CUR=JSON.parse(JSON.stringify(d));WORK=d;CURPW=pw;
-    st('s2','ok','✓ Đã mở bộ câu hỏi hiện tại.');loadIntoUI();
-  }).catch(function(e){st('s2','no',e.status?ghErr(e):esc(e.message));});
+    savePw(pw);st('s2','ok','✓ Đã mở bộ câu hỏi hiện tại'+(AUTO?' (tự động)':'')+'.');AUTO=false;loadIntoUI();
+  }).catch(function(e){if(AUTO&&!e.status){savePw('');$('curPw').value='';}AUTO=false;st('s2','no',e.status?ghErr(e):esc(e.message)+(e.message==='Sai mật khẩu.'?' Có thể mật khẩu đã được đổi – hãy nhập mật khẩu mới.':''));});
 };
 $('curPw').onkeydown=function(e){if(e.key==='Enter')$('bOpen').click();};
 
@@ -785,7 +789,7 @@ $('bPublish').onclick=function(){
     .then(function(){return (cfgText(c)!==cfgText(CFG))?putFile('config.js',cfgText(c),'Cài đặt: '+c.ten+' '+c.nam+(c.need?' · bắt buộc mã CB':'')):null;})
     .then(function(){
       CUR=JSON.parse(JSON.stringify(data));WORK=JSON.parse(JSON.stringify(data));CFG=c;CURPW=pw;
-      $('newPw').value='';$('newPw2').value='';$('note').value='';$('dataName').value=dn;$('curPw').value=pw;$('hist').innerHTML='';
+      $('newPw').value='';$('newPw2').value='';$('note').value='';$('dataName').value=dn;$('curPw').value=pw;savePw(pw);$('hist').innerHTML='';
       var link='https://'+GH.owner+'.github.io/'+GH.repo+'/';
       st('s4','ok','✓ Đã đăng xong. Khoảng 1–2 phút nữa app sẽ có bản mới: <a href="'+link+'" target="_blank" rel="noopener">'+esc(link)+'</a>'+(np?'<br><b>Nhớ gửi mật khẩu mới cho mọi người.</b>':''));
       renderSummary();refresh();
