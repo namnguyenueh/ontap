@@ -976,6 +976,12 @@ render();
 /* ================= ĐĂNG NHẬP: dùng chung mật khẩu & mã cán bộ với app cũ ================= */
 (function(){
 var PK='ontap-qh2025-pw',CK='ontap-qh2025-ma',NEED=!!window.YEU_CAU_MA_CB,ENC=null;
+/* Link riêng: …/ontap/<user AD> (trang 404 chuyển về ?u=<user AD>). Bản offline vẫn nhập User AD như cũ. */
+var LINKMODE=!window.BAN_OFFLINE,LK='ontap-link-user',DK='ontap-device-id';
+(function(){try{var m=/[?&]u=([^&#]+)/.exec(location.search);if(m){var u=String(decodeURIComponent(m[1])).replace(/\s+/g,'').toUpperCase();
+  if(u){localStorage.setItem(LK,u);if(localStorage.getItem(CK)!==u)localStorage.setItem(CK,u);}
+  history.replaceState(null,'',location.pathname+location.hash);}}catch(e){}})();
+if(LINKMODE)NEED=true;
 var app=document.getElementById('app');
 function b64(s){var r=atob(s),u=new Uint8Array(r.length);for(var i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -994,6 +1000,7 @@ function check(raw,code){
   if(NEED){
     if(!code)throw 'nocode';
     if(/^\d+$/.test(code))throw 'numcode';
+    if(LINKMODE&&!/^[A-Z0-9._-]{2,40}$/.test(code))throw 'badcode';
     if(Object.keys(codes).length&&!Object.prototype.hasOwnProperty.call(codes,code))throw 'badcode';
     user.code=code;user.name=codes[code]||'';
   }
@@ -1006,40 +1013,64 @@ function watermark(text){
   d.style.backgroundImage='url("data:image/svg+xml,'+encodeURIComponent(svg)+'")';
   document.body.appendChild(d);
 }
+function devKey(raw,code){return code.replace(/[.#$\[\]\/]/g,'_')+'_'+((raw.dev&&raw.dev[code])||0);}
+function devId(){var d=get(DK);if(!d){d=(Date.now().toString(36)+Math.random().toString(36).slice(2,12)+Math.random().toString(36).slice(2,8));set(DK,d);}return d;}
+function devCheck(raw,user){
+  if(!LINKMODE||!user.code)return Promise.resolve();
+  var key=devKey(raw,user.code),id=devId(),DB=(window.FIREBASE_CONFIG&&window.FIREBASE_CONFIG.databaseURL)||'';
+  if(!DB)return Promise.resolve();
+  var ok=get('ontap-dv-'+key)===id,url=DB+'/devices/'+encodeURIComponent(key);
+  function read(){return fetch(url+'.json?t='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw 'devnet';return r.json();});}
+  function claim(slot){return fetch(url+'/'+slot+'.json',{method:'PUT',body:JSON.stringify(id)}).then(function(r){return r.ok;});}
+  function done(){set('ontap-dv-'+key,id);}
+  var p=read().then(function(v){v=v||{};
+    if(v.d1===id||v.d2===id){done();return;}
+    var slot=!v.d1?'d1':(!v.d2?'d2':null);if(!slot)throw 'devfull';
+    return claim(slot).then(function(okk){if(okk){done();return;}return read().then(function(v2){v2=v2||{};if(v2.d1===id||v2.d2===id){done();return;}throw 'devfull';});});
+  });
+  if(ok)return p.catch(function(e){if(e==='devfull'){set('ontap-dv-'+key,null);throw e;}});  // máy đã xác nhận: mất mạng vẫn học được
+  return p.catch(function(e){throw e==='devfull'?'devfull':'devnet';});
+}
+function plain(txt){document.getElementById('bar').innerHTML='';
+  app.innerHTML='<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:16px;white-space:pre-line">'+esc(txt)+'</div>';}
 function start(raw,user){
   try{runApp(raw,user);}catch(e){app.innerHTML='<div class="empty" style="margin-top:20vh">Có lỗi khi mở ứng dụng.<br><small>'+esc(e&&e.message||e)+'</small><br><br><button class="btn pri" onclick="location.reload()">Tải lại</button></div>';if(window.console)console.error(e);return;}
   if(window.ONLINE)ONLINE.start();
   watermark(user.code||'TÀI LIỆU NỘI BỘ');
 }
-var MSG={pw:'Sai mật khẩu, vui lòng thử lại.',nocode:'Vui lòng nhập User AD cán bộ.',numcode:'User AD không được là dãy toàn số. Vui lòng nhập đúng User AD (ví dụ: NAMNT4).',badcode:'User AD này không có trong danh sách được phép sử dụng.',nocrypto:'Trình duyệt này không hỗ trợ. Hãy mở bằng Safari hoặc Chrome qua đường link https.'};
+var MSG={nolink:'Vui lòng mở app bằng link được cấp.\nLiên hệ NAMNT4.',devfull:'Tài khoản này đã được dùng trên 2 máy khác.\nVui lòng liên hệ NAMNT4.',devnet:'Lần đầu sử dụng trên máy này cần có kết nối mạng.\nVui lòng kết nối mạng rồi mở lại.',pw:'Sai mật khẩu, vui lòng thử lại.',nocode:'Vui lòng nhập User AD cán bộ.',numcode:'User AD không được là dãy toàn số. Vui lòng nhập đúng User AD (ví dụ: NAMNT4).',badcode:'User AD này không có trong danh sách được phép sử dụng.',nocrypto:'Trình duyệt này không hỗ trợ. Hãy mở bằng Safari hoặc Chrome qua đường link https.'};
 function form(msg){
   var sc=get(CK)||'';
   document.getElementById('bar').innerHTML='';
   app.innerHTML='<div class="login"><div class="lc"><img src="icon.png" alt="" width="64" height="64" style="border-radius:16px"><h1 style="font-size:21px;margin:12px 0 4px">'+esc(TEN+' '+NAM)+'</h1><p class="mute" style="margin:0 0 22px">Học thông minh – nhớ lâu, biết mình cần ôn gì<span class="rl"></span></p>'+
-  (function(){var s=gState(GATE);return s.open&&s.until?'<p style="margin:-8px 0 14px;font-size:13.5px;color:#ffe08a"><b>App mở đến '+vnTime(s.until)+'</b></p>':'';})()+'<form id="pf">'+(NEED?'<input type="text" id="ma" placeholder="User AD cán bộ" autocapitalize="characters" autocomplete="username" value="'+esc(sc)+'" style="text-align:center;margin-bottom:10px">':'')+
+  (function(){var s=gState(GATE);return s.open&&s.until?'<p style="margin:-8px 0 14px;font-size:13.5px;color:#ffe08a"><b>App mở đến '+vnTime(s.until)+'</b></p>':'';})()+'<form id="pf">'+(LINKMODE?'<div style="text-align:center;font-weight:700;font-size:16px;margin:0 0 12px">'+esc(get(LK)||'')+'</div>':(NEED?'<input type="text" id="ma" placeholder="User AD cán bộ" autocapitalize="characters" autocomplete="username" value="'+esc(sc)+'" style="text-align:center;margin-bottom:10px">':''))+
   '<input type="password" id="pw" placeholder="Mật khẩu (mặc định: Vietinbank)" autocomplete="current-password" style="text-align:center;margin-bottom:10px">'+
   '<label style="display:flex;gap:8px;align-items:center;justify-content:center;font-size:14px;color:var(--mute);margin-bottom:14px"><input type="checkbox" id="rm" checked> Ghi nhớ trên máy này</label>'+
   '<button class="btn pri big" id="pb">Vào học</button></form><p id="pm" style="color:var(--bad);min-height:24px;margin-top:12px">'+(msg||'')+'</p>'+
   '<p class="ft" style="font-size:12.5px;margin-top:18px">Tài liệu nội bộ – không chia sẻ ra ngoài.<br>Phiên bản '+APP_VER+' · '+APP_DATE+'<br><b>'+esc(APP_AUTHOR)+'</b></p></div></div>';
   document.getElementById('pf').onsubmit=function(e){e.preventDefault();
-    var pw=document.getElementById('pw').value.trim(),ma=NEED?normCode(document.getElementById('ma').value):'';
+    var pw=document.getElementById('pw').value.trim(),ma=LINKMODE?(get(LK)||''):(NEED?normCode(document.getElementById('ma').value):'');
     if(NEED&&!ma){document.getElementById('pm').textContent=MSG.nocode;return;}
     if(NEED&&/^\d+$/.test(ma)){document.getElementById('pm').textContent=MSG.numcode;document.getElementById('ma').focus();return;}
     if(!pw)return;
     var bt=document.getElementById('pb');bt.disabled=true;bt.textContent='Đang mở…';
+    var rm=document.getElementById('rm').checked;
     unlock(pw).then(function(raw){
       var user=check(raw,ma);
-      if(document.getElementById('rm').checked){set(PK,pw);set(CK,ma||null);}else{set(PK,null);set(CK,null);}
-      start(raw,user);
-    }).catch(function(err){form(MSG[err]||MSG.pw);});
+      return devCheck(raw,user).then(function(){
+        if(rm){set(PK,pw);set(CK,ma||null);}else{set(PK,null);if(!LINKMODE)set(CK,null);}
+        start(raw,user);});
+    }).catch(function(err){if(LINKMODE&&(err==='badcode'||err==='devfull'||err==='devnet'||err==='numcode'))plain(err==='badcode'||err==='numcode'?'User '+ma+' chưa được cấp quyền.\nVui lòng liên hệ NAMNT4.':MSG[err]);else form(MSG[err]||MSG.pw);});
   };
-  setTimeout(function(){var p=document.getElementById(NEED&&!sc?'ma':'pw');if(p)p.focus();},50);
+  setTimeout(function(){var p=document.getElementById(!LINKMODE&&NEED&&!sc?'ma':'pw');if(p)p.focus();},50);
 }
 function boot(){
-  var pw=get(PK),ma=get(CK)||'';
+  if(LINKMODE&&!get(LK)){plain(MSG.nolink);return;}
+  var pw=get(PK),ma=LINKMODE?get(LK):(get(CK)||'');
   if(pw){
     app.innerHTML='<div class="empty" style="margin-top:30vh">Đang mở…</div>';
-    unlock(pw).then(function(raw){start(raw,check(raw,ma));}).catch(function(err){
+    unlock(pw).then(function(raw){var u=check(raw,ma);return devCheck(raw,u).then(function(){start(raw,u);});}).catch(function(err){
+      if(LINKMODE&&(err==='badcode'||err==='devfull'||err==='devnet'||err==='numcode')){plain(err==='badcode'||err==='numcode'?'User '+ma+' chưa được cấp quyền.\nVui lòng liên hệ NAMNT4.':MSG[err]);return;}
       if(err==='pw')set(PK,null);
       if(err==='numcode')set(CK,null);
       form(err==='numcode'?MSG.numcode:err==='badcode'?MSG.badcode:(err==='nocode'?'':MSG.pw.replace('Sai mật khẩu','Mật khẩu đã được thay đổi')));

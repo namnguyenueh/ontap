@@ -116,7 +116,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
 <body>
 <div class="wrap">
   <h1>Quản trị app ôn tập</h1>
-  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.1 · 16/11/2026.<br>Cập nhật câu hỏi, mật khẩu, mã cán bộ và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
+  <p class="sub"><b>Tác giả: NAMNT4-CN ĐẮK LẮK</b> · Phiên bản 4.1 · 16/11/2026.<br>Cập nhật câu hỏi, mật khẩu, người dùng và cài đặt. Mọi thay đổi chỉ có hiệu lực sau khi bấm <b>Đăng lên</b>.</p>
 
   <div class="card" id="c1">
     <h2 class="tg" data-c="c1"><span class="n">1</span>Kết nối GitHub<span class="cs" id="cs1"></span><span class="cv">▾</span></h2>
@@ -150,7 +150,7 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
       <button class="tab on" data-p="pQ">Tải Excel câu hỏi</button>
       <button class="tab" data-p="pE">Soạn &amp; sửa từng câu</button>
       <button class="tab" data-p="pT">Chủ đề</button>
-      <button class="tab" data-p="pC">Mã cán bộ</button>
+      <button class="tab" data-p="pC">Người dùng &amp; link</button>
       <button class="tab" data-p="pS">Mật khẩu &amp; cài đặt</button>
       <button class="tab" data-p="pH">Lịch sử</button>
       <button class="tab" data-p="pU">Người học</button>
@@ -196,11 +196,14 @@ code{background:var(--bg);padding:1px 5px;border-radius:5px;font-size:13px}
     </div>
 
     <div class="pane" id="pC">
-      <p class="hint">Mỗi dòng một cán bộ: <code>Mã cán bộ, Họ tên</code> (họ tên có thể bỏ trống). Có thể dán thẳng 2 cột từ Excel. Nếu có danh sách, chỉ những mã trong danh sách mới mở được app; để trống thì mã nào cũng vào được. Mã không phân biệt chữ hoa/thường, khoảng trắng.</p>
+      <p class="hint">Mỗi dòng một người: <code>User AD, Họ tên</code> (họ tên có thể bỏ trống). Có thể dán thẳng 2 cột từ Excel. Link riêng của mỗi người là <b id="linkBase">…/ontap/</b><b>user AD viết thường</b> – ví dụ <code id="linkEx"></code>. Mỗi link chỉ dùng được trên <b>2 máy</b>. Chỉ người có trong danh sách mới vào được (danh sách trống thì ai cũng vào được). Nhớ bấm <b>Đăng lên</b> sau khi thêm/bớt.</p>
       <textarea id="codes" placeholder="CB001, Nguyễn Văn A&#10;CB002, Trần Thị B"></textarea>
       <div class="row" style="margin-top:8px"><label class="btn sm" style="flex:none">Nhập từ Excel (cột A mã, cột B họ tên)<input type="file" id="fc" accept=".xlsx,.xlsm" style="display:none"></label><span id="cCount" style="color:var(--mute);align-self:center"></span></div>
-      <label class="chk"><input type="checkbox" id="needCode"> Bắt buộc nhập mã cán bộ khi mở app (chữ chìm sẽ là mã cán bộ)</label>
+      <label class="chk" style="display:none"><input type="checkbox" id="needCode" checked> Bắt buộc</label>
       <div id="sC"></div>
+      <div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><button class="btn sm" id="bDev" style="flex:none">Xem số máy đang dùng</button><button class="btn sm" id="bLinks" style="flex:none">⬇ Tải danh sách link (Excel)</button></div>
+      <div id="sD"></div>
+      <div id="uLinks" style="margin-top:10px"></div>
     </div>
 
     <div class="pane" id="pS">
@@ -480,7 +483,7 @@ function readCfgText(txt){
   return c;
 }
 function cfgText(c){return '// Cấu hình app ôn tập – trang quản trị (admin.html) sẽ tự ghi lại file này.\nwindow.TEN_APP = '+JSON.stringify(c.ten)+';\nwindow.NAM_ON_TAP = '+(parseInt(c.nam,10)||new Date().getFullYear())+';\nwindow.YEU_CAU_MA_CB = '+(c.need?'true':'false')+';\n// Mở/đóng app: mode = open | closed | schedule (giờ Việt Nam)\nwindow.TRANG_THAI = '+JSON.stringify(c.gate||CFG.gate||{mode:'open'})+';\n';}
-function curCfg(){return {ten:$('appName').value.trim()||'Ôn tập Quy hoạch',nam:parseInt($('appYear').value,10)||CFG.nam,need:$('needCode').checked,gate:CFG.gate||{mode:'open'}};}
+function curCfg(){return {ten:$('appName').value.trim()||'Ôn tập Quy hoạch',nam:parseInt($('appYear').value,10)||CFG.nam,need:true,gate:CFG.gate||{mode:'open'}};}
 function parseCodes(txt){
   var out={},dup=[],bad=[];
   txt.split(/\r?\n/).forEach(function(line,i){
@@ -488,20 +491,54 @@ function parseCodes(txt){
     var p=line.split(/\t|,|;/),code=String(p[0]||'').replace(/\s+/g,'').toUpperCase(),name=p.slice(1).join(' ').replace(/\s+/g,' ').trim();
     if(!code)return;
     if(i===0&&/^M[AÃ]/i.test(code)&&/CB|C[AÁ]NB/i.test(code))return; // dòng tiêu đề
+    if(i===0&&/^(USER|AD|USERAD|MÃ|MA)/i.test(code)&&!name.match(/\d/)&&/USER|AD/i.test(code))return;
+    if(/^\d+$/.test(code)||!/^[A-Z0-9._-]{2,40}$/.test(code)||/^(ADMIN|OFFLINE|INDEX|404|ADMIN\.HTML|INDEX\.HTML)$/.test(code)){bad.push(code);return;}
     if(out.hasOwnProperty(code))dup.push(code);
     out[code]=name;
   });
-  return {codes:out,dup:dup};
+  return {codes:out,dup:dup,bad:bad};
 }
 function codesText(c){return Object.keys(c).map(function(k){return k+(c[k]?', '+c[k]:'');}).join('\n');}
 function syncCodes(){var p=parseCodes($('codes').value);WORK.codes=p.codes;var n=Object.keys(p.codes).length;
-  $('cCount').textContent=fmt(n)+' mã cán bộ'+(p.dup.length?' · trùng: '+p.dup.join(', '):'');
-  if($('needCode').checked)st('sC','info',n?'Chỉ '+fmt(n)+' mã trong danh sách mới mở được app.':'Danh sách đang trống: người dùng phải nhập mã cán bộ, nhưng <b>mã nào cũng vào được</b>.');else st('sC');
-  refresh();}
+  $('cCount').textContent=fmt(n)+' người dùng'+(p.dup.length?' · trùng: '+p.dup.join(', '):'');
+  if(p.bad.length)st('sC','no','Bỏ qua User AD không hợp lệ (toàn số, có ký tự lạ hoặc trùng tên trang): <b>'+esc(p.bad.join(', '))+'</b>');
+  else st('sC','info',n?'Chỉ '+fmt(n)+' người trong danh sách mới vào được app, mỗi người tối đa 2 máy.':'Danh sách đang trống: <b>ai có link cũng vào được</b>.');
+  renderLinks();refresh();}
+function appBase(){return 'https://'+GH.owner+'.github.io/'+GH.repo+'/';}
+function userLink(code){return appBase()+code.toLowerCase();}
+var DEVS={};
+function devKey(code){return code.replace(/[.#$\[\]\/]/g,'_')+'_'+(((WORK&&WORK.dev)||{})[code]||0);}
+function renderLinks(){
+  if(!WORK)return;$('linkBase').textContent=appBase();$('linkEx').textContent=userLink('NAMNT4');
+  var cs=Object.keys(WORK.codes||{}),pub=(CUR&&CUR.codes)||{};
+  if(!cs.length){$('uLinks').innerHTML='';return;}
+  $('uLinks').innerHTML=cs.map(function(c){var k=devKey(c),dv=DEVS[k],n=dv?(dv.d1?1:0)+(dv.d2?1:0):null,isNew=!pub.hasOwnProperty(c),resetPending=((WORK.dev||{})[c]||0)!==(((CUR&&CUR.dev)||{})[c]||0);
+    return '<div class="ucard"><div class="uc"><div class="un">'+esc(c)+(WORK.codes[c]?' · '+esc(WORK.codes[c]):'')+(isNew?' <span style="color:var(--warn);font-size:12px">(chưa đăng)</span>':'')+'</div>'+
+      '<div class="um"><a href="#" data-cp="'+esc(c)+'">'+esc(userLink(c))+'</a></div></div>'+
+      '<div class="ur"><b>'+(resetPending?'0':(n==null?'–':n))+'<small style="font-weight:500;color:var(--mute)">/2 máy</small></b>'+
+      '<button class="btn sm" data-rs="'+esc(c)+'" style="margin-top:4px">'+(resetPending?'Chờ đăng':'Reset máy')+'</button></div></div>';}).join('');
+  Array.prototype.forEach.call($('uLinks').querySelectorAll('[data-cp]'),function(a){a.onclick=function(e){e.preventDefault();var l=userLink(a.dataset.cp);
+    (navigator.clipboard?navigator.clipboard.writeText(l):Promise.reject()).then(function(){st('sD','ok','✓ Đã sao chép link của '+esc(a.dataset.cp)+'.');},function(){st('sD','info','Link: '+esc(l));});};});
+  Array.prototype.forEach.call($('uLinks').querySelectorAll('[data-rs]'),function(b){b.onclick=function(){var c=b.dataset.rs;
+    confirmBox('Reset máy cho <b>'+esc(c)+'</b>? Hai máy đang dùng sẽ bị gỡ, người dùng mở lại link để đăng ký máy mới. Cần bấm <b>Đăng lên</b> để có hiệu lực.').then(function(ok){if(!ok)return;
+      WORK.dev=WORK.dev||{};WORK.dev[c]=(WORK.dev[c]||0)+1;renderLinks();refresh();});};});
+}
+$('bDev').onclick=function(){
+  var cs=Object.keys((WORK&&WORK.codes)||{});if(!cs.length){st('sD','info','Chưa có người dùng.');return;}
+  st('sD','info','Đang tải…');
+  Promise.all(cs.map(function(c){var k=devKey(c);return fetch(FB_DB+'/devices/'+encodeURIComponent(k)+'.json?t='+Date.now()).then(function(r){return r.ok?r.json():null;}).then(function(v){DEVS[k]=v||{};}).catch(function(){});}))
+  .then(function(){st('sD');renderLinks();});
+};
+$('bLinks').onclick=function(){
+  var cs=Object.keys((WORK&&WORK.codes)||{});if(!cs.length){st('sD','info','Chưa có người dùng.');return;}
+  var rows=[['User AD','Họ tên','Link riêng','Số máy đang dùng']];
+  cs.forEach(function(c){var v=DEVS[devKey(c)];rows.push([c,WORK.codes[c]||'',userLink(c),v?(v.d1?1:0)+(v.d2?1:0):'']);});
+  download(writeXlsx('Link',rows,[16,28,52,16]),'link-nguoi-dung-'+today().replace(/\//g,'-')+'.xlsx');
+};
 function renderSummary(){
   if(WORK&&$('cs2').textContent.indexOf('✓')===0)setStat(2,'✓ '+fmt(WORK.q.length)+' câu · '+WORK.t.length+' chủ đề');
   var hidden=(WORK.hidden||[]).length,codes=Object.keys(WORK.codes||{}).length;
-  $('sum').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(WORK.q.length)+'</b><span>câu hỏi</span></div><div class="stat"><b>'+fmt(WORK.t.length)+'</b><span>chủ đề'+(hidden?' ('+hidden+' ẩn)':'')+'</span></div><div class="stat"><b>'+fmt(codes)+'</b><span>mã cán bộ</span></div><div class="stat"><b>'+esc((WORK.meta&&WORK.meta.updated)||'–')+'</b><span>cập nhật lần cuối'+(WORK.meta&&WORK.meta.name?'<br>'+esc(WORK.meta.name):'')+'</span></div></div>';
+  $('sum').innerHTML='<div class="stats"><div class="stat"><b>'+fmt(WORK.q.length)+'</b><span>câu hỏi</span></div><div class="stat"><b>'+fmt(WORK.t.length)+'</b><span>chủ đề'+(hidden?' ('+hidden+' ẩn)':'')+'</span></div><div class="stat"><b>'+fmt(codes)+'</b><span>người dùng</span></div><div class="stat"><b>'+esc((WORK.meta&&WORK.meta.updated)||'–')+'</b><span>cập nhật lần cuối'+(WORK.meta&&WORK.meta.name?'<br>'+esc(WORK.meta.name):'')+'</span></div></div>';
 }
 function renderTopics(){
   var cnt=WORK.t.map(function(){return 0;});WORK.q.forEach(function(q){cnt[q[0]]++;});
@@ -560,7 +597,7 @@ function moveTopic(i,d){
 function loadIntoUI(){
   renderSummary();renderTopics();
   $('codes').value=codesText(WORK.codes||{});
-  $('needCode').checked=!!CFG.need;$('appName').value=CFG.ten;$('appYear').value=CFG.nam;$('dataName').value=(WORK.meta&&WORK.meta.name)||'';
+  $('needCode').checked=true;$('appName').value=CFG.ten;$('appYear').value=CFG.nam;$('dataName').value=(WORK.meta&&WORK.meta.name)||'';
   syncCodes();fillTopicLists();searchQ();gLoad();
   ['c3','c4'].forEach(function(id){$(id).classList.remove('lock');});
   refresh();
@@ -577,8 +614,9 @@ function changes(){
   }
   var h1=(CUR.hidden||[]).slice().sort().join('|'),h2=(WORK.hidden||[]).slice().sort().join('|');
   if(h1!==h2)out.push('Chủ đề bị ẩn: '+((WORK.hidden||[]).length?WORK.hidden.join(', '):'không có'));
-  if(JSON.stringify(CUR.codes||{})!==JSON.stringify(WORK.codes||{}))out.push('Danh sách mã cán bộ: '+fmt(Object.keys(WORK.codes||{}).length)+' mã (trước: '+fmt(Object.keys(CUR.codes||{}).length)+')');
-  if(c.need!==CFG.need)out.push(c.need?'Bật bắt buộc nhập mã cán bộ':'Tắt bắt buộc nhập mã cán bộ');
+  if(JSON.stringify(CUR.codes||{})!==JSON.stringify(WORK.codes||{}))out.push('Danh sách người dùng: '+fmt(Object.keys(WORK.codes||{}).length)+' người (trước: '+fmt(Object.keys(CUR.codes||{}).length)+')');
+  var rs=Object.keys(WORK.dev||{}).filter(function(k){return (WORK.dev[k]||0)!==((CUR.dev||{})[k]||0);});if(rs.length)out.push('Reset máy: '+rs.join(', '));
+
   if(c.ten!==CFG.ten||String(c.nam)!==String(CFG.nam))out.push('Tên app: '+c.ten+' '+c.nam);
   var dn=$('dataName').value.trim();if(dn!==((CUR.meta&&CUR.meta.name)||''))out.push('Tên phiên bản bộ câu hỏi: '+(dn||'(tự đặt theo ngày đăng)'));
   if($('newPw').value)out.push('Đổi mật khẩu');
@@ -672,7 +710,7 @@ $('bOpen').onclick=function(){
     if(rs[1])CFG=readCfgText(rs[1]);if(!CFG.gate)CFG.gate={mode:'open'};
     return decrypt(rs[0],pw).catch(function(){throw new Error('Sai mật khẩu.');});
   }).then(function(d){
-    d.hidden=d.hidden||[];d.codes=d.codes||{};d.meta=d.meta||{};
+    d.hidden=d.hidden||[];d.codes=d.codes||{};d.dev=d.dev||{};d.meta=d.meta||{};
     CUR=JSON.parse(JSON.stringify(d));WORK=d;CURPW=pw;
     savePw(pw);st('s2','ok','✓ Đã mở bộ câu hỏi hiện tại'+(AUTO?' (tự động)':'')+'.');AUTO=false;loadIntoUI();
     setStat(2,'✓ '+fmt(WORK.q.length)+' câu · '+WORK.t.length+' chủ đề');setCol('c2',1);
@@ -919,7 +957,7 @@ function restore(sha,ds){
       return askPw('Mật khẩu của bản '+ds,'Bản này được khóa bằng mật khẩu cũ. Nhập mật khẩu dùng vào thời điểm đó:','').then(function(pw){if(pw==null)throw {cancel:1};return decrypt(enc,pw).catch(function(){throw new Error('Sai mật khẩu của bản cũ.');});});
     });
   }).then(function(d){
-    WORK.t=d.t;WORK.q=d.q;WORK.hidden=d.hidden||[];WORK.codes=d.codes||{};
+    WORK.t=d.t;WORK.q=d.q;WORK.hidden=d.hidden||[];WORK.codes=d.codes||{};WORK.dev=d.dev||{};
     $('codes').value=codesText(WORK.codes);renderSummary();renderTopics();syncCodes();fillTopicLists();searchQ();
     $('hist').insertAdjacentHTML('afterbegin','<div class="status ok" style="margin-bottom:10px">✓ Đã nạp bản ngày '+esc(ds)+' vào bản nháp (câu hỏi, chủ đề ẩn, mã cán bộ). Bấm <b>Đăng lên</b> ở mục 4 để khôi phục. Mật khẩu sẽ là mật khẩu hiện tại (trừ khi anh/chị đặt mật khẩu mới).</div>');
   }).catch(function(e){if(e&&e.cancel)return;alertBox(e.status?ghErr(e):(e.message||'Lỗi'));});
@@ -937,8 +975,9 @@ $('bPublish').onclick=function(){
     var dn=$('dataName').value.trim()||('Bản '+today());
     var dd=dataDiff(),log=((CUR.meta&&CUR.meta.log)||[]).slice();
     if(dd.length){dn=nextName();if(note)dd.unshift(note);log.unshift({v:dn,d:today(),n:dd});log=log.slice(0,60);}
-    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},meta:{updated:dd.length?today():((CUR.meta&&CUR.meta.updated)||today()),note:note,name:dd.length?dn:((CUR.meta&&CUR.meta.name)||dn),rev:((CUR.meta&&CUR.meta.rev)||1)+1,log:log}};
-    var msg='['+dn+'] Cập nhật: '+fmt(data.q.length)+' câu, '+data.t.length+' chủ đề, '+fmt(Object.keys(data.codes).length)+' mã CB'+(np?', đổi mật khẩu':'')+(note?' – '+note:'');
+    var dv={};Object.keys(WORK.dev||{}).forEach(function(k){if((WORK.codes||{}).hasOwnProperty(k)&&WORK.dev[k])dv[k]=WORK.dev[k];});
+    var data={t:WORK.t,q:WORK.q,hidden:WORK.hidden||[],codes:WORK.codes||{},dev:dv,meta:{updated:dd.length?today():((CUR.meta&&CUR.meta.updated)||today()),note:note,name:dd.length?dn:((CUR.meta&&CUR.meta.name)||dn),rev:((CUR.meta&&CUR.meta.rev)||1)+1,log:log}};
+    var msg='['+dn+'] Cập nhật: '+fmt(data.q.length)+' câu, '+data.t.length+' chủ đề, '+fmt(Object.keys(data.codes).length)+' người dùng'+(np?', đổi mật khẩu':'')+(note?' – '+note:'');
     $('bPublish').disabled=true;st('s4','info','Đang khóa dữ liệu và đăng lên GitHub… (khoảng 10–30 giây)');
     encrypt(data,pw).then(function(enc){return putFile('data.json',enc,msg);})
     .then(function(){return (cfgText(c)!==cfgText(CFG))?putFile('config.js',cfgText(c),'Cài đặt: '+c.ten+' '+c.nam+(c.need?' · bắt buộc mã CB':'')):null;})
@@ -947,7 +986,7 @@ $('bPublish').onclick=function(){
       $('newPw').value='';$('newPw2').value='';$('note').value='';$('dataName').value=dn;$('curPw').value=pw;savePw(pw);$('hist').innerHTML='';
       var link='https://'+GH.owner+'.github.io/'+GH.repo+'/';
       st('s4','ok','✓ Đã đăng xong. Khoảng 1–2 phút nữa app sẽ có bản mới: <a href="'+link+'" target="_blank" rel="noopener">'+esc(link)+'</a>'+(np?'<br><b>Nhớ gửi mật khẩu mới cho mọi người.</b>':''));
-      renderSummary();refresh();
+      renderSummary();renderLinks();refresh();
     }).catch(function(e){st('s4','no',esc(ghErr(e)));refresh();});
   });
 };
