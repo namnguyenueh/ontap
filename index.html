@@ -980,7 +980,7 @@ var PK='ontap-qh2025-pw',CK='ontap-qh2025-ma',NEED=!!window.YEU_CAU_MA_CB,ENC=nu
 var LINKMODE=!window.BAN_OFFLINE,LK='ontap-link-user',DK='ontap-device-id';
 (function(){try{var m=/[?&]u=([^&#]+)/.exec(location.search);if(m){var u=String(decodeURIComponent(m[1])).replace(/\s+/g,'').toUpperCase();
   if(u){localStorage.setItem(LK,u);if(localStorage.getItem(CK)!==u)localStorage.setItem(CK,u);}
-  history.replaceState(null,'',location.pathname+location.hash);}}catch(e){}})();
+  var bp=location.pathname.replace(/[^\/]*$/,'');history.replaceState(null,'',bp+(u?u.toLowerCase():'')+location.hash);}}catch(e){}})();
 if(LINKMODE)NEED=true;
 var app=document.getElementById('app');
 function b64(s){var r=atob(s),u=new Uint8Array(r.length);for(var i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;}
